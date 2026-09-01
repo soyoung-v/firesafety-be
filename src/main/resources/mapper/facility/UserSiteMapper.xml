@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.facility.mapper.UserSiteMapper">
-    <resultMap id="userSiteResultMap" type="com.rayworld.firesafety.facility.model.UserSite">
+<mapper namespace="com.arcguard.firesafety.facility.mapper.UserSiteMapper">
+    <resultMap id="userSiteResultMap" type="com.arcguard.firesafety.facility.model.UserSite">
         <id property="mappingId" column="mapping_id"/>
         <result property="userId" column="user_id"/>
         <result property="siteId" column="site_id"/>
@@ -13,7 +13,7 @@
     </resultMap>
 
     <resultMap id="userSiteAssignmentResultMap"
-               type="com.rayworld.firesafety.facility.model.UserSiteAssignment">
+               type="com.arcguard.firesafety.facility.model.UserSiteAssignment">
         <id property="mappingId" column="mapping_id"/>
         <result property="userId" column="user_id"/>
         <result property="siteId" column="site_id"/>
@@ -98,7 +98,7 @@
     </select>
 
     <!-- 기존 row가 없으면 신규 담당 현장으로 배정 -->
-    <insert id="insertAssignment" parameterType="com.rayworld.firesafety.facility.model.UserSite">
+    <insert id="insertAssignment" parameterType="com.arcguard.firesafety.facility.model.UserSite">
         INSERT INTO user_site (
             user_id,
             site_id

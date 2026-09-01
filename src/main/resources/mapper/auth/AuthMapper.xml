@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.auth.mapper.AuthMapper">
-    <resultMap id="userResultMap" type="com.rayworld.firesafety.auth.model.User">
+<mapper namespace="com.arcguard.firesafety.auth.mapper.AuthMapper">
+    <resultMap id="userResultMap" type="com.arcguard.firesafety.auth.model.User">
         <id property="userId" column="user_id"/>
         <result property="email" column="email"/>
         <result property="password" column="password"/>
@@ -21,7 +21,7 @@
         <result property="deletedAt" column="deleted_at"/>
     </resultMap>
 
-    <resultMap id="refreshTokenResultMap" type="com.rayworld.firesafety.auth.model.RefreshToken">
+    <resultMap id="refreshTokenResultMap" type="com.arcguard.firesafety.auth.model.RefreshToken">
         <id property="tokenId" column="token_id"/>
         <result property="userId" column="user_id"/>
         <result property="tokenHash" column="token_hash"/>
@@ -30,7 +30,7 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <resultMap id="userAuditLogResultMap" type="com.rayworld.firesafety.auth.model.UserAuditLog">
+    <resultMap id="userAuditLogResultMap" type="com.arcguard.firesafety.auth.model.UserAuditLog">
         <id property="auditId" column="audit_id"/>
         <result property="targetUserId" column="target_user_id"/>
         <result property="actorUserId" column="actor_user_id"/>
@@ -40,7 +40,7 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <resultMap id="passwordResetTokenResultMap" type="com.rayworld.firesafety.auth.model.PasswordResetToken">
+    <resultMap id="passwordResetTokenResultMap" type="com.arcguard.firesafety.auth.model.PasswordResetToken">
         <id property="tokenId" column="token_id"/>
         <result property="userId" column="user_id"/>
         <result property="tokenHash" column="token_hash"/>
@@ -97,7 +97,7 @@
 
     <!-- 로그인 시 Refresh Token 원문 대신 SHA-256 해시 저장 -->
     <insert id="insertRefreshToken"
-            parameterType="com.rayworld.firesafety.auth.model.RefreshToken"
+            parameterType="com.arcguard.firesafety.auth.model.RefreshToken"
             useGeneratedKeys="true"
             keyProperty="tokenId">
         INSERT INTO refresh_token (
@@ -287,7 +287,7 @@
 
     <!-- 관리자 계정관리 화면에서 신규 사용자 등록 -->
     <insert id="insertUser"
-            parameterType="com.rayworld.firesafety.auth.model.User"
+            parameterType="com.arcguard.firesafety.auth.model.User"
             useGeneratedKeys="true"
             keyProperty="userId">
         INSERT INTO `user` (
@@ -310,7 +310,7 @@
     </insert>
 
     <!-- 관리자 계정관리 화면에서 사용자 기본 정보 수정 -->
-    <update id="updateUser" parameterType="com.rayworld.firesafety.auth.model.User">
+    <update id="updateUser" parameterType="com.arcguard.firesafety.auth.model.User">
         UPDATE `user`
         SET email = #{email},
             name = #{name},
@@ -376,7 +376,7 @@
 
     <!-- 비밀번호 재설정 메일 발송 전 토큰 해시 저장 -->
     <insert id="insertPasswordResetToken"
-            parameterType="com.rayworld.firesafety.auth.model.PasswordResetToken"
+            parameterType="com.arcguard.firesafety.auth.model.PasswordResetToken"
             useGeneratedKeys="true"
             keyProperty="tokenId">
         INSERT INTO password_reset_token (
@@ -444,7 +444,7 @@
 
     <!-- 사용자 생성/수정/삭제/복구/비밀번호 변경 이력 기록 -->
     <insert id="insertUserAuditLog"
-            parameterType="com.rayworld.firesafety.auth.model.UserAuditLog"
+            parameterType="com.arcguard.firesafety.auth.model.UserAuditLog"
             useGeneratedKeys="true"
             keyProperty="auditId">
         INSERT INTO user_audit_log (
@@ -464,7 +464,7 @@
 
     <!-- 서버 최초 기동 시 플랫폼관리자 계정 생성 -->
     <insert id="insertBootstrapSuperAdmin"
-            parameterType="com.rayworld.firesafety.auth.model.User"
+            parameterType="com.arcguard.firesafety.auth.model.User"
             useGeneratedKeys="true"
             keyProperty="userId">
         INSERT INTO `user` (

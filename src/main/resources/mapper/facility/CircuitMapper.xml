@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.facility.mapper.CircuitMapper">
-    <resultMap id="circuitResultMap" type="com.rayworld.firesafety.facility.model.Circuit">
+<mapper namespace="com.arcguard.firesafety.facility.mapper.CircuitMapper">
+    <resultMap id="circuitResultMap" type="com.arcguard.firesafety.facility.model.Circuit">
         <id property="circuitId" column="circuit_id"/>
         <result property="panelId" column="panel_id"/>
         <result property="channelNo" column="channel_no"/>
@@ -15,7 +15,7 @@
 
     <!-- 분전반 아래 신규 회로 등록 -->
     <insert id="insertCircuit"
-            parameterType="com.rayworld.firesafety.facility.model.Circuit"
+            parameterType="com.arcguard.firesafety.facility.model.Circuit"
             useGeneratedKeys="true"
             keyProperty="circuitId">
         INSERT INTO circuit (

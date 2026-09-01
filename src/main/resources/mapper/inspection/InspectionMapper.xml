@@ -2,28 +2,28 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.inspection.mapper.InspectionMapper">
-    <resultMap id="inspectionItemResResultMap" type="com.rayworld.firesafety.inspection.dto.res.InspectionItemRes">
+<mapper namespace="com.arcguard.firesafety.inspection.mapper.InspectionMapper">
+    <resultMap id="inspectionItemResResultMap" type="com.arcguard.firesafety.inspection.dto.res.InspectionItemRes">
         <id property="itemId" column="item_id"/>
         <result property="siteId" column="site_id"/>
         <result property="itemName" column="item_name"/>
         <result property="description" column="description"/>
     </resultMap>
 
-    <resultMap id="inspectionHistoryResResultMap" type="com.rayworld.firesafety.inspection.dto.res.InspectionHistoryRes">
+    <resultMap id="inspectionHistoryResResultMap" type="com.arcguard.firesafety.inspection.dto.res.InspectionHistoryRes">
         <id property="inspectionId" column="inspection_id"/>
         <result property="inspectedAt" column="inspected_at"/>
         <result property="inspectorName" column="inspector_name"/>
         <result property="note" column="note"/>
     </resultMap>
 
-    <resultMap id="inspectionResultItemResResultMap" type="com.rayworld.firesafety.inspection.dto.res.InspectionResultItemRes">
+    <resultMap id="inspectionResultItemResResultMap" type="com.arcguard.firesafety.inspection.dto.res.InspectionResultItemRes">
         <result property="itemId" column="item_id"/>
         <result property="itemName" column="item_name"/>
         <result property="result" column="result"/>
     </resultMap>
 
-    <resultMap id="inspectionExportRowResResultMap" type="com.rayworld.firesafety.inspection.dto.res.InspectionExportRowRes">
+    <resultMap id="inspectionExportRowResResultMap" type="com.arcguard.firesafety.inspection.dto.res.InspectionExportRowRes">
         <id property="inspectionId" column="inspection_id"/>
         <result property="siteName" column="site_name"/>
         <result property="panelName" column="panel_name"/>
@@ -39,7 +39,7 @@
 
     <!-- 점검 항목 등록 (현장 카탈로그) -->
     <insert id="insertInspectionItem"
-            parameterType="com.rayworld.firesafety.inspection.model.InspectionItem"
+            parameterType="com.arcguard.firesafety.inspection.model.InspectionItem"
             useGeneratedKeys="true"
             keyProperty="itemId">
         INSERT INTO inspection_item (site_id, item_name, description)
@@ -47,7 +47,7 @@
     </insert>
 
     <!-- 점검 항목 수정 (현장 카탈로그) -->
-    <update id="updateInspectionItem" parameterType="com.rayworld.firesafety.inspection.model.InspectionItem">
+    <update id="updateInspectionItem" parameterType="com.arcguard.firesafety.inspection.model.InspectionItem">
         UPDATE inspection_item
         SET item_name = #{itemName}, description = #{description}
         WHERE item_id = #{itemId}
@@ -117,7 +117,7 @@
 
     <!-- 점검 실행 1건 등록 -->
     <insert id="insertInspectionResult"
-            parameterType="com.rayworld.firesafety.inspection.model.InspectionResult"
+            parameterType="com.arcguard.firesafety.inspection.model.InspectionResult"
             useGeneratedKeys="true"
             keyProperty="inspectionId">
         INSERT INTO inspection_result (panel_id, inspected_at, inspector_id, note)
@@ -125,7 +125,7 @@
     </insert>
 
     <!-- 점검 실행 1건에 딸린 항목별 결과 등록 -->
-    <insert id="insertInspectionResultItem" parameterType="com.rayworld.firesafety.inspection.model.InspectionResultItem">
+    <insert id="insertInspectionResultItem" parameterType="com.arcguard.firesafety.inspection.model.InspectionResultItem">
         INSERT INTO inspection_result_item (inspection_id, item_id, result)
         VALUES (#{inspectionId}, #{itemId}, #{result})
     </insert>

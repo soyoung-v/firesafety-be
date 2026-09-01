@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.system.mapper.SystemMapper">
-    <resultMap id="releaseResultMap" type="com.rayworld.firesafety.system.model.SystemReleaseHistory">
+<mapper namespace="com.arcguard.firesafety.system.mapper.SystemMapper">
+    <resultMap id="releaseResultMap" type="com.arcguard.firesafety.system.model.SystemReleaseHistory">
         <id property="releaseId" column="release_id"/>
         <result property="version" column="version"/>
         <result property="type" column="type"/>
@@ -13,7 +13,7 @@
     </resultMap>
 
     <insert id="insertRelease"
-            parameterType="com.rayworld.firesafety.system.model.SystemReleaseHistory"
+            parameterType="com.arcguard.firesafety.system.model.SystemReleaseHistory"
             useGeneratedKeys="true"
             keyProperty="releaseId">
         INSERT INTO system_release_history (version, type, description, updated_by, released_at)

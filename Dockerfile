@@ -1,5 +1,5 @@
 # firesafety-be 백엔드 이미지. 소스 빌드 후 실행용 JRE만 남기는 멀티스테이지 빌드.
-# 회사 물리서버(x86_64)에서 그대로 빌드해서 쓸 경우 --platform 옵션은 필요 없다.
+# 온프레미스 물리서버(x86_64)에서 그대로 빌드해서 쓸 경우 --platform 옵션은 필요 없다.
 # 개발 Mac(Apple Silicon)에서 이미지를 만들어 옮길 때만
 # `docker buildx build --platform linux/amd64 ...`로 빌드할 것.
 

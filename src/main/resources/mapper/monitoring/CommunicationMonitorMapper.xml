@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.monitoring.mapper.CommunicationMonitorMapper">
-    <resultMap id="offlinePanelTargetResultMap" type="com.rayworld.firesafety.monitoring.model.OfflinePanelTarget">
+<mapper namespace="com.arcguard.firesafety.monitoring.mapper.CommunicationMonitorMapper">
+    <resultMap id="offlinePanelTargetResultMap" type="com.arcguard.firesafety.monitoring.model.OfflinePanelTarget">
         <id property="panelId" column="panel_id"/>
         <result property="lastCommunicatedAt" column="last_communicated_at"/>
     </resultMap>

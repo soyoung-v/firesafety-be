@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.facility.mapper.SiteMapper">
-    <resultMap id="siteResultMap" type="com.rayworld.firesafety.facility.model.Site">
+<mapper namespace="com.arcguard.firesafety.facility.mapper.SiteMapper">
+    <resultMap id="siteResultMap" type="com.arcguard.firesafety.facility.model.Site">
         <id property="siteId" column="site_id"/>
         <result property="name" column="name"/>
         <result property="address" column="address"/>
@@ -14,7 +14,7 @@
         <result property="deletedAt" column="deleted_at"/>
     </resultMap>
 
-    <resultMap id="facilityAuditLogResultMap" type="com.rayworld.firesafety.facility.model.FacilityAuditLog">
+    <resultMap id="facilityAuditLogResultMap" type="com.arcguard.firesafety.facility.model.FacilityAuditLog">
         <id property="auditId" column="audit_id"/>
         <result property="targetType" column="target_type"/>
         <result property="targetId" column="target_id"/>
@@ -50,7 +50,7 @@
 
     <!-- 최고관리자가 신규 현장을 등록 -->
     <insert id="insertSite"
-            parameterType="com.rayworld.firesafety.facility.model.Site"
+            parameterType="com.arcguard.firesafety.facility.model.Site"
             useGeneratedKeys="true"
             keyProperty="siteId">
         INSERT INTO site (
@@ -144,7 +144,7 @@
     </select>
 
     <!-- 최고관리자가 현장 기본 정보를 수정 -->
-    <update id="updateSite" parameterType="com.rayworld.firesafety.facility.model.Site">
+    <update id="updateSite" parameterType="com.arcguard.firesafety.facility.model.Site">
         UPDATE site
         SET name = #{name},
             address = #{address},
@@ -166,7 +166,7 @@
 
     <!-- 현장/분전반/회로 등록·수정·삭제 이력 저장 -->
     <insert id="insertFacilityAuditLog"
-            parameterType="com.rayworld.firesafety.facility.model.FacilityAuditLog"
+            parameterType="com.arcguard.firesafety.facility.model.FacilityAuditLog"
             useGeneratedKeys="true"
             keyProperty="auditId">
         INSERT INTO facility_audit_log (

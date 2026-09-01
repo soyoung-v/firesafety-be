@@ -1,6 +1,6 @@
 # ArcGuard(firesafety) 온프레미스 배포 (2026-07-28 확정)
 #
-# - 외부에서 열 수 있는 포트는 22222(CSTECH_RECV_HTTP) 하나. 하드웨어/API/WebSocket/프론트 전부
+# - 외부에서 열 수 있는 포트는 22222(SENSOR_RECV_HTTP) 하나. 하드웨어/API/WebSocket/프론트 전부
 #   nginx가 이 포트 하나로 받아 경로별로 분기한다 (deploy/nginx/conf.d/firesafety.conf 참고).
 # - 이번 범위는 수동 배포다. 로컬(Mac)에서 이미지를 빌드 → tar로 저장 → SFTP로 서버 전달 →
 #   서버에서 docker load → docker compose up -d 순서. GitHub Actions/Harbor/ArgoCD/Watchtower는 안 씀.
@@ -80,9 +80,9 @@ services:
     logging: *default-logging
 
   ai-service:
-    # CSTech 아크 예측 API (FastAPI + scikit-learn, CPU 추론만 사용, GPU 불필요).
-    # 포트 8000/health 경로 확정됨(2026-07-29, CSTech 코드베이스 인수 확인) — AI_PREDICTION_BASE_URL과 일치.
-    # 이미지 빌드: CSTech 레포 루트에서 `docker buildx build --platform linux/amd64 -t arcguard-ai-service:latest --load .`
+    # 아크 예측 API (FastAPI + scikit-learn, CPU 추론만 사용, GPU 불필요).
+    # 포트 8000/health 경로 확정됨(2026-07-29) — AI_PREDICTION_BASE_URL과 일치.
+    # 이미지 빌드: ai-service 레포 루트에서 `docker buildx build --platform linux/amd64 -t arcguard-ai-service:latest --load .`
     # profiles로 분리 — 이미지가 없어도 기본 `docker compose up -d`가 실패하지 않는다.
     # AI_PREDICTION_ENABLED=false인 동안 backend는 이 서비스가 없어도 정상 기동/운영된다 (manual-deploy-guide.md 참고).
     profiles: ["ai"]

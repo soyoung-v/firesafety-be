@@ -1,6 +1,6 @@
 # ArcGuard (아크가드) — 백엔드
 
-씨에스텍 하드웨어(분전반 센서)가 보내는 데이터를 수신해 하드웨어 판정 + AI 아크 판정을 종합하고, 실시간 관제화면(WebSocket)과 경보(FCM 푸시 포함)로 이어주는 백엔드. 단일 Spring Boot 애플리케이션 안에서 도메인 패키지로 분리된 Modular Monolith 구조를 쓴다.
+현장 분전반 센서 디바이스가 보내는 데이터를 수신해 하드웨어 판정 + AI 아크 판정을 종합하고, 실시간 관제화면(WebSocket)과 경보(FCM 푸시 포함)로 이어주는 백엔드. 단일 Spring Boot 애플리케이션 안에서 도메인 패키지로 분리된 Modular Monolith 구조를 쓴다.
 
 ---
 
@@ -95,7 +95,7 @@ SENSOR_MOCK_DELAY_MS=5000  # 생성 주기(ms)
 
 ## API
 
-`GET /m_noUpload.php`는 표준 REST 컨벤션(`/api/...`)을 따르지 않는 예외 경로다. 씨에스텍 하드웨어가 쿼리스트링(전부 String, 필드별 고정 자리수)으로 직접 호출하는 레거시 프로토콜이라 임의로 바꾸지 않는다.
+`GET /m_noUpload.php`는 표준 REST 컨벤션(`/api/...`)을 따르지 않는 예외 경로다. 센서 디바이스가 쿼리스트링(전부 String, 필드별 고정 자리수)으로 직접 호출하는 레거시 프로토콜이라 임의로 바꾸지 않는다.
 
 ```
 GET /m_noUpload.php?m_no=00001&mode=0&volt=230&am1=023&count1=0000&...&tem=272&humi=484&...

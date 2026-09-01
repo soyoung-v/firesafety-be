@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.facility.mapper.PanelMapper">
-    <resultMap id="panelResultMap" type="com.rayworld.firesafety.facility.model.Panel">
+<mapper namespace="com.arcguard.firesafety.facility.mapper.PanelMapper">
+    <resultMap id="panelResultMap" type="com.arcguard.firesafety.facility.model.Panel">
         <id property="panelId" column="panel_id"/>
         <result property="siteId" column="site_id"/>
         <result property="name" column="name"/>
@@ -27,7 +27,7 @@
 
     <!-- 현장 아래 신규 분전반 등록 -->
     <insert id="insertPanel"
-            parameterType="com.rayworld.firesafety.facility.model.Panel"
+            parameterType="com.arcguard.firesafety.facility.model.Panel"
             useGeneratedKeys="true"
             keyProperty="panelId">
         INSERT INTO panel (
@@ -339,7 +339,7 @@
     </select>
 
     <!-- 관리자 분전반 기본 정보와 임계치 수정 -->
-    <update id="updatePanel" parameterType="com.rayworld.firesafety.facility.model.Panel">
+    <update id="updatePanel" parameterType="com.arcguard.firesafety.facility.model.Panel">
         UPDATE panel
         SET name = #{name},
             device_serial = #{deviceSerial},
@@ -381,7 +381,7 @@
           AND deleted_at IS NULL
     </update>
 
-    <resultMap id="sensorFrameResultMap" type="com.rayworld.firesafety.sensor.model.SensorFrame">
+    <resultMap id="sensorFrameResultMap" type="com.arcguard.firesafety.sensor.model.SensorFrame">
         <id property="frameId" column="frame_id"/>
         <result property="panelId" column="panel_id"/>
         <result property="receivedAt" column="received_at"/>
@@ -421,7 +421,7 @@
         LIMIT 1
     </select>
 
-    <resultMap id="circuitStatusRowResultMap" type="com.rayworld.firesafety.facility.model.CircuitStatusRow">
+    <resultMap id="circuitStatusRowResultMap" type="com.arcguard.firesafety.facility.model.CircuitStatusRow">
         <id property="circuitId" column="circuit_id"/>
         <result property="channelNo" column="channel_no"/>
         <result property="loadType" column="load_type"/>
@@ -459,7 +459,7 @@
         ORDER BY c.channel_no ASC
     </select>
 
-    <resultMap id="panelRecentAlertResultMap" type="com.rayworld.firesafety.facility.dto.res.PanelRecentAlertRes">
+    <resultMap id="panelRecentAlertResultMap" type="com.arcguard.firesafety.facility.dto.res.PanelRecentAlertRes">
         <id property="alertId" column="alert_id"/>
         <result property="type" column="type"/>
         <result property="triggeredAt" column="triggered_at"/>

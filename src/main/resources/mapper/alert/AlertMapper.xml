@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.alert.mapper.AlertMapper">
-    <resultMap id="alertResultMap" type="com.rayworld.firesafety.alert.model.Alert">
+<mapper namespace="com.arcguard.firesafety.alert.mapper.AlertMapper">
+    <resultMap id="alertResultMap" type="com.arcguard.firesafety.alert.model.Alert">
         <id property="alertId" column="alert_id"/>
         <result property="circuitId" column="circuit_id"/>
         <result property="panelId" column="panel_id"/>
@@ -20,7 +20,7 @@
         <result property="resolutionNote" column="resolution_note"/>
     </resultMap>
 
-    <resultMap id="alertListResultMap" type="com.rayworld.firesafety.alert.dto.res.AlertListRes">
+    <resultMap id="alertListResultMap" type="com.arcguard.firesafety.alert.dto.res.AlertListRes">
         <id property="alertId" column="alert_id"/>
         <result property="panelId" column="panel_id"/>
         <result property="panelName" column="panel_name"/>
@@ -36,7 +36,7 @@
         <result property="resolutionNote" column="resolution_note"/>
     </resultMap>
 
-    <resultMap id="alertExportResultMap" type="com.rayworld.firesafety.alert.dto.res.AlertExportRes">
+    <resultMap id="alertExportResultMap" type="com.arcguard.firesafety.alert.dto.res.AlertExportRes">
         <id property="alertId" column="alert_id"/>
         <result property="siteName" column="site_name"/>
         <result property="panelName" column="panel_name"/>
@@ -90,7 +90,7 @@
         </where>
     </sql>
 
-    <resultMap id="alertPendingResultMap" type="com.rayworld.firesafety.alert.dto.res.AlertPendingRes">
+    <resultMap id="alertPendingResultMap" type="com.arcguard.firesafety.alert.dto.res.AlertPendingRes">
         <id property="alertId" column="alert_id"/>
         <result property="panelId" column="panel_id"/>
         <result property="panelName" column="panel_name"/>
@@ -164,7 +164,7 @@
 
     <!-- 경보 발생 이력 저장 -->
     <insert id="insertAlert"
-            parameterType="com.rayworld.firesafety.alert.model.Alert"
+            parameterType="com.arcguard.firesafety.alert.model.Alert"
             useGeneratedKeys="true"
             keyProperty="alertId">
         INSERT INTO alert (

@@ -2,36 +2,36 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.statistics.mapper.StatisticsMapper">
-    <resultMap id="statisticsGroupCountResultMap" type="com.rayworld.firesafety.statistics.dto.res.StatisticsGroupCount">
+<mapper namespace="com.arcguard.firesafety.statistics.mapper.StatisticsMapper">
+    <resultMap id="statisticsGroupCountResultMap" type="com.arcguard.firesafety.statistics.dto.res.StatisticsGroupCount">
         <result property="key" column="stat_key"/>
         <result property="count" column="stat_count"/>
     </resultMap>
 
-    <resultMap id="dailyAlertCountResultMap" type="com.rayworld.firesafety.statistics.dto.res.DailyAlertCountRes">
+    <resultMap id="dailyAlertCountResultMap" type="com.arcguard.firesafety.statistics.dto.res.DailyAlertCountRes">
         <result property="date" column="stat_date"/>
         <result property="count" column="stat_count"/>
     </resultMap>
 
-    <resultMap id="dailyResolutionRowResultMap" type="com.rayworld.firesafety.statistics.dto.res.DailyResolutionRow">
+    <resultMap id="dailyResolutionRowResultMap" type="com.arcguard.firesafety.statistics.dto.res.DailyResolutionRow">
         <result property="date" column="stat_date"/>
         <result property="totalCount" column="total_count"/>
         <result property="resolvedCount" column="resolved_count"/>
         <result property="preventedCount" column="prevented_count"/>
     </resultMap>
 
-    <resultMap id="circuitCountRowResultMap" type="com.rayworld.firesafety.statistics.dto.res.CircuitCountRow">
+    <resultMap id="circuitCountRowResultMap" type="com.arcguard.firesafety.statistics.dto.res.CircuitCountRow">
         <result property="totalCircuitCount" column="total_circuit_count"/>
         <result property="diagnosedCircuitCount" column="diagnosed_circuit_count"/>
     </resultMap>
 
-    <resultMap id="inspectionCountRowResultMap" type="com.rayworld.firesafety.statistics.dto.res.InspectionCountRow">
+    <resultMap id="inspectionCountRowResultMap" type="com.arcguard.firesafety.statistics.dto.res.InspectionCountRow">
         <result property="totalPanelCount" column="total_panel_count"/>
         <result property="inspectedPanelCount" column="inspected_panel_count"/>
         <result property="totalInspectionCount" column="total_inspection_count"/>
     </resultMap>
 
-    <resultMap id="recentInspectionResultMap" type="com.rayworld.firesafety.statistics.dto.res.RecentInspectionRes">
+    <resultMap id="recentInspectionResultMap" type="com.arcguard.firesafety.statistics.dto.res.RecentInspectionRes">
         <result property="panelId" column="panel_id"/>
         <result property="panelName" column="panel_name"/>
         <result property="inspectedAt" column="inspected_at"/>

@@ -2,24 +2,24 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.diagnosis.mapper.AiDiagnosisResultMapper">
-    <resultMap id="aiPredictionPanelTargetResultMap" type="com.rayworld.firesafety.diagnosis.model.AiPredictionPanelTarget">
+<mapper namespace="com.arcguard.firesafety.diagnosis.mapper.AiDiagnosisResultMapper">
+    <resultMap id="aiPredictionPanelTargetResultMap" type="com.arcguard.firesafety.diagnosis.model.AiPredictionPanelTarget">
         <id property="panelId" column="panel_id"/>
         <result property="mNo" column="m_no"/>
     </resultMap>
 
-    <resultMap id="aiPredictionCircuitTargetResultMap" type="com.rayworld.firesafety.diagnosis.model.AiPredictionCircuitTarget">
+    <resultMap id="aiPredictionCircuitTargetResultMap" type="com.arcguard.firesafety.diagnosis.model.AiPredictionCircuitTarget">
         <id property="circuitId" column="circuit_id"/>
         <result property="channelNo" column="channel_no"/>
         <result property="latestFrameId" column="latest_frame_id"/>
     </resultMap>
 
-    <resultMap id="aiPredictionSampleResultMap" type="com.rayworld.firesafety.diagnosis.dto.req.AiPredictionSampleReq">
+    <resultMap id="aiPredictionSampleResultMap" type="com.arcguard.firesafety.diagnosis.dto.req.AiPredictionSampleReq">
         <result property="am" column="am"/>
         <result property="count" column="count"/>
     </resultMap>
 
-    <resultMap id="diagnosisResultResResultMap" type="com.rayworld.firesafety.diagnosis.dto.res.DiagnosisResultRes">
+    <resultMap id="diagnosisResultResResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultRes">
         <id property="resultId" column="result_id"/>
         <result property="circuitId" column="circuit_id"/>
         <result property="frameId" column="frame_id"/>
@@ -31,7 +31,7 @@
         <result property="diagnosedAt" column="diagnosed_at"/>
     </resultMap>
 
-    <resultMap id="panelDiagnosisRecentResultMap" type="com.rayworld.firesafety.diagnosis.dto.res.PanelDiagnosisRecentRes">
+    <resultMap id="panelDiagnosisRecentResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisRecentRes">
         <id property="resultId" column="result_id"/>
         <result property="circuitId" column="circuit_id"/>
         <result property="channelNo" column="channel_no"/>
@@ -43,7 +43,7 @@
         <result property="diagnosedAt" column="diagnosed_at"/>
     </resultMap>
 
-    <resultMap id="panelDiagnosisSampleStatusResultMap" type="com.rayworld.firesafety.diagnosis.dto.res.PanelDiagnosisSampleStatusRes">
+    <resultMap id="panelDiagnosisSampleStatusResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisSampleStatusRes">
         <id property="circuitId" column="circuit_id"/>
         <result property="channelNo" column="channel_no"/>
         <result property="sampleCount" column="sample_count"/>
@@ -52,7 +52,7 @@
 
     <!-- AI 판정 결과 저장 -->
     <insert id="insertAiDiagnosisResult"
-            parameterType="com.rayworld.firesafety.diagnosis.model.AiDiagnosisResult"
+            parameterType="com.arcguard.firesafety.diagnosis.model.AiDiagnosisResult"
             useGeneratedKeys="true"
             keyProperty="resultId">
         INSERT INTO ai_diagnosis_result (

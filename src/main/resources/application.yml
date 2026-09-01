@@ -52,7 +52,7 @@ constants:
 
   cors:
     # 콤마로 구분된 목록 — 배포 주소(IP/도메인)가 바뀔 때마다 코드 재빌드 없이 이 값만 바꾸면 됨
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:4173,http://192.168.0.239:5173,http://192.168.0.34:5173,http://192.168.0.34:5174}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:4173,http://192.0.2.10:5173,http://192.0.2.11:5173,http://192.0.2.11:5174}
 
   bootstrap:
     admin:

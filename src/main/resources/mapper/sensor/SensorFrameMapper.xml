@@ -2,10 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.rayworld.firesafety.sensor.mapper.SensorFrameMapper">
+<mapper namespace="com.arcguard.firesafety.sensor.mapper.SensorFrameMapper">
     <!-- 디바이스 1회 전송분 공통 필드 저장 -->
     <insert id="insertSensorFrame"
-            parameterType="com.rayworld.firesafety.sensor.model.SensorFrame"
+            parameterType="com.arcguard.firesafety.sensor.model.SensorFrame"
             useGeneratedKeys="true"
             keyProperty="frameId">
         INSERT INTO sensor_frame (
