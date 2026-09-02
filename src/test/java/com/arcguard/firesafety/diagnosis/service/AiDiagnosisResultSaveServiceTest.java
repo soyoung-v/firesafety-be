@@ -4,6 +4,7 @@ import com.arcguard.firesafety.alert.service.AiAlertService;
 import com.arcguard.firesafety.diagnosis.mapper.AiDiagnosisResultMapper;
 import com.arcguard.firesafety.diagnosis.model.AiDiagnosisResult;
 import com.arcguard.firesafety.diagnosis.model.DiagnosisTriggerType;
+import com.arcguard.firesafety.diagnosis.model.RiskLevel;
 import com.arcguard.firesafety.diagnosis.model.Verdict;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +46,10 @@ class AiDiagnosisResultSaveServiceTest {
         }).when(aiDiagnosisResultMapper).insertAiDiagnosisResult(org.mockito.Mockito.any());
 
         // when
-        aiDiagnosisResultSaveService.save(10L, 20L, 30L, Verdict.ARC, 0.91, 60, null, DiagnosisTriggerType.MANUAL);
+        aiDiagnosisResultSaveService.save(
+                10L, 20L, 30L, Verdict.ARC, 0.91, 60, null, DiagnosisTriggerType.MANUAL,
+                null, null, null, null, null
+        );
 
         // then
         ArgumentCaptor<AiDiagnosisResult> resultCaptor = ArgumentCaptor.forClass(AiDiagnosisResult.class);
@@ -68,7 +72,8 @@ class AiDiagnosisResultSaveServiceTest {
         // when
         aiDiagnosisResultSaveService.save(
                 10L, 20L, 30L, Verdict.NORMAL, null, 45,
-                "샘플 45개 — 60개 이상 권장 (정확도 저하 가능)", DiagnosisTriggerType.AUTO
+                "샘플 45개 — 60개 이상 권장 (정확도 저하 가능)", DiagnosisTriggerType.AUTO,
+                null, null, null, null, null
         );
 
         // then
@@ -82,5 +87,60 @@ class AiDiagnosisResultSaveServiceTest {
         assertThat(result.getNSamples()).isEqualTo(45);
         assertThat(result.getWarning()).isEqualTo("샘플 45개 — 60개 이상 권장 (정확도 저하 가능)");
         assertThat(result.getTriggerType()).isEqualTo(DiagnosisTriggerType.AUTO);
+    }
+
+    @Test
+    @DisplayName("Phase 9: riskLevel=DANGER, anomaly=true여도 ARC 경보를 생성하지 않는다 (ADR-002 모델 역할 분리)")
+    void saveDangerAndAnomalyResultWithoutForcedArcAlert() {
+        // when
+        aiDiagnosisResultSaveService.save(
+                10L, 20L, 30L, Verdict.NORMAL, 0.05, 60, null, DiagnosisTriggerType.AUTO,
+                RiskLevel.DANGER, 0.93, true, 0.87, 5.12
+        );
+
+        // then
+        verify(aiAlertService, never()).createArcAlert(org.mockito.Mockito.anyLong(), org.mockito.Mockito.anyLong(), org.mockito.Mockito.anyLong());
+
+        ArgumentCaptor<AiDiagnosisResult> resultCaptor = ArgumentCaptor.forClass(AiDiagnosisResult.class);
+        verify(aiDiagnosisResultMapper).insertAiDiagnosisResult(resultCaptor.capture());
+
+        AiDiagnosisResult result = resultCaptor.getValue();
+        assertThat(result.getVerdict()).isEqualTo(Verdict.NORMAL);
+        assertThat(result.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+        assertThat(result.getRiskScore()).isEqualTo(0.93f);
+        assertThat(result.getAnomaly()).isTrue();
+        assertThat(result.getAnomalyScore()).isEqualTo(0.87f);
+        assertThat(result.getPredictedCurrent()).isEqualTo(5.12f);
+    }
+
+    @Test
+    @DisplayName("Phase 9: context가 없어 신규 확장 필드가 전부 null이어도 기존 ARC 저장은 그대로 성공한다")
+    void saveArcResultWithNullExtendedFields() {
+        // given
+        doAnswer(invocation -> {
+            AiDiagnosisResult result = invocation.getArgument(0);
+            result.setResultId(200L);
+            return null;
+        }).when(aiDiagnosisResultMapper).insertAiDiagnosisResult(org.mockito.Mockito.any());
+
+        // when
+        aiDiagnosisResultSaveService.save(
+                10L, 20L, 30L, Verdict.ARC, 0.87, 60, null, DiagnosisTriggerType.AUTO,
+                null, null, null, null, null
+        );
+
+        // then
+        verify(aiAlertService).createArcAlert(10L, 20L, 200L);
+
+        ArgumentCaptor<AiDiagnosisResult> resultCaptor = ArgumentCaptor.forClass(AiDiagnosisResult.class);
+        verify(aiDiagnosisResultMapper).insertAiDiagnosisResult(resultCaptor.capture());
+
+        AiDiagnosisResult result = resultCaptor.getValue();
+        assertThat(result.getVerdict()).isEqualTo(Verdict.ARC);
+        assertThat(result.getRiskLevel()).isNull();
+        assertThat(result.getRiskScore()).isNull();
+        assertThat(result.getAnomaly()).isNull();
+        assertThat(result.getAnomalyScore()).isNull();
+        assertThat(result.getPredictedCurrent()).isNull();
     }
 }

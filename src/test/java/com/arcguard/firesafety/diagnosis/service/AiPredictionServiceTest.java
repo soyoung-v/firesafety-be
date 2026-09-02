@@ -2,6 +2,7 @@ package com.arcguard.firesafety.diagnosis.service;
 
 import com.arcguard.firesafety.common.exception.BusinessException;
 import com.arcguard.firesafety.diagnosis.config.AiPredictionProperties;
+import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionContextSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionReq;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.res.AiPredictionRes;
@@ -11,6 +12,7 @@ import com.arcguard.firesafety.diagnosis.mapper.AiDiagnosisResultMapper;
 import com.arcguard.firesafety.diagnosis.model.AiPredictionCircuitTarget;
 import com.arcguard.firesafety.diagnosis.model.AiPredictionPanelTarget;
 import com.arcguard.firesafety.diagnosis.model.DiagnosisTriggerType;
+import com.arcguard.firesafety.diagnosis.model.RiskLevel;
 import com.arcguard.firesafety.diagnosis.model.Verdict;
 import com.arcguard.firesafety.facility.model.Circuit;
 import com.arcguard.firesafety.facility.model.Panel;
@@ -94,7 +96,10 @@ class AiPredictionServiceTest {
         assertThat(request.getCircuits().get(0).getCircuit()).isEqualTo(1);
         assertThat(request.getCircuits().get(0).getSamples()).hasSize(1);
 
-        verify(aiDiagnosisResultSaveService).save(10L, 20L, 30L, Verdict.ARC, 0.87, 60, null, DiagnosisTriggerType.AUTO);
+        verify(aiDiagnosisResultSaveService).save(
+                10L, 20L, 30L, Verdict.ARC, 0.87, 60, null, DiagnosisTriggerType.AUTO,
+                null, null, null, null, null
+        );
         verify(panelStatusAggregationService).aggregatePanelStatus(10L);
     }
 
@@ -137,8 +142,91 @@ class AiPredictionServiceTest {
         aiPredictionService.predictCircuit(panel(), circuit());
 
         // then
-        verify(aiDiagnosisResultSaveService).save(10L, 20L, 500L, Verdict.ARC, 0.87, 60, null, DiagnosisTriggerType.MANUAL);
+        verify(aiDiagnosisResultSaveService).save(
+                10L, 20L, 500L, Verdict.ARC, 0.87, 60, null, DiagnosisTriggerType.MANUAL,
+                null, null, null, null, null
+        );
         verify(panelStatusAggregationService).aggregatePanelStatus(10L);
+    }
+
+    @Test
+    @DisplayName("Phase 9: context 샘플이 있으면 AI 요청에 context를 채워 보내고, 신규 확장 결과도 그대로 저장한다")
+    void predictCircuitIncludesContextAndExtendedResults() {
+        // given
+        when(aiDiagnosisResultMapper.findRecentSamples(20L, 60)).thenReturn(sampleListOfSize(30));
+        when(aiDiagnosisResultMapper.findLatestFrameId(20L)).thenReturn(500L);
+        when(aiDiagnosisResultMapper.findRecentContextSamples(10L, 60)).thenReturn(List.of(contextSample()));
+        when(aiPredictionClient.predict(any())).thenReturn(aiResponseWithExtendedFields());
+
+        // when
+        aiPredictionService.predictCircuit(panel(), circuit());
+
+        // then
+        ArgumentCaptor<AiPredictionReq> requestCaptor = ArgumentCaptor.forClass(AiPredictionReq.class);
+        verify(aiPredictionClient).predict(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getContext()).isNotNull();
+        assertThat(requestCaptor.getValue().getContext().getSamples()).hasSize(1);
+
+        verify(aiDiagnosisResultSaveService).save(
+                10L, 20L, 500L, Verdict.ARC, 0.87, 60, null, DiagnosisTriggerType.MANUAL,
+                RiskLevel.DANGER, 0.93, true, 0.87, 5.12
+        );
+    }
+
+    @Test
+    @DisplayName("Phase 9: context 조회에 실패해도 Legacy ARC 판정 흐름은 그대로 진행된다")
+    void predictCircuitContinuesWhenContextLookupFails() {
+        // given
+        when(aiDiagnosisResultMapper.findRecentSamples(20L, 60)).thenReturn(sampleListOfSize(30));
+        when(aiDiagnosisResultMapper.findLatestFrameId(20L)).thenReturn(500L);
+        when(aiDiagnosisResultMapper.findRecentContextSamples(10L, 60)).thenThrow(new RuntimeException("context 조회 실패"));
+        when(aiPredictionClient.predict(any())).thenReturn(aiResponse());
+
+        // when
+        aiPredictionService.predictCircuit(panel(), circuit());
+
+        // then
+        ArgumentCaptor<AiPredictionReq> requestCaptor = ArgumentCaptor.forClass(AiPredictionReq.class);
+        verify(aiPredictionClient).predict(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getContext()).isNull();
+
+        verify(aiDiagnosisResultSaveService).save(
+                10L, 20L, 500L, Verdict.ARC, 0.87, 60, null, DiagnosisTriggerType.MANUAL,
+                null, null, null, null, null
+        );
+        verify(panelStatusAggregationService).aggregatePanelStatus(10L);
+    }
+
+    private AiPredictionContextSampleReq contextSample() {
+        AiPredictionContextSampleReq sample = new AiPredictionContextSampleReq();
+        sample.setVoltage(new BigDecimal("224.0"));
+        sample.setLeakageCurrent(new BigDecimal("2.0"));
+        sample.setTemperature(new BigDecimal("27.2"));
+        sample.setHumidity(new BigDecimal("48.4"));
+        sample.setFireRaw(500);
+        sample.setGasRaw(500);
+        sample.setDoorOpen(false);
+        sample.setTotalCurrent(new BigDecimal("10.0"));
+        sample.setTotalPower(2000);
+        return sample;
+    }
+
+    private AiPredictionRes aiResponseWithExtendedFields() {
+        AiPredictionResultRes result = new AiPredictionResultRes();
+        result.setCircuit(1);
+        result.setPred(1);
+        result.setProba(0.87);
+        result.setNSamples(60);
+        result.setRiskLevel(RiskLevel.DANGER);
+        result.setRiskScore(0.93);
+        result.setAnomaly(true);
+        result.setAnomalyScore(0.87);
+        result.setPredictedCurrent(5.12);
+
+        AiPredictionRes response = new AiPredictionRes();
+        response.setMNo("00001");
+        response.setResults(List.of(result));
+        return response;
     }
 
     private Panel panel() {
