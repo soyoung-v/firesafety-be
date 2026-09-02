@@ -22,4 +22,11 @@ public class AiDiagnosisResult {
     private String warning;
     private DiagnosisTriggerType triggerType;
     private LocalDateTime diagnosedAt;
+
+    // 신규 확장 결과 - verdict/confidence(기존 ARC 판정)와는 별개 의미. context 없으면 전부 NULL로 저장된다.
+    private RiskLevel riskLevel;
+    private Float riskScore;
+    private Boolean anomaly;
+    private Float anomalyScore;
+    private Float predictedCurrent;
 }

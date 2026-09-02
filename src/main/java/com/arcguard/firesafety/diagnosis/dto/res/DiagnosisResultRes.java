@@ -2,6 +2,7 @@ package com.arcguard.firesafety.diagnosis.dto.res;
 
 import com.arcguard.firesafety.diagnosis.model.Verdict;
 import com.arcguard.firesafety.diagnosis.model.DiagnosisTriggerType;
+import com.arcguard.firesafety.diagnosis.model.RiskLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,4 +42,20 @@ public class DiagnosisResultRes {
 
     @Schema(description = "AI 진단 저장 시각", example = "2026-07-23T14:35:00")
     private LocalDateTime diagnosedAt;
+
+    // 신규 확장 결과 - verdict/confidence(기존 ARC 판정)와는 별개 의미. context 없이 판정됐으면 전부 null.
+    @Schema(description = "신규 위험도 3단계(NORMAL/WARNING/DANGER). 없으면 null", example = "NORMAL")
+    private RiskLevel riskLevel;
+
+    @Schema(description = "신규 위험도 점수(0~1, 화재 발생 확률 아님). 없으면 null", example = "0.11")
+    private Float riskScore;
+
+    @Schema(description = "정상 패턴 이탈 여부(비지도 판정). 없으면 null", example = "false")
+    private Boolean anomaly;
+
+    @Schema(description = "이상치 점수(0~1, 높을수록 정상과 다름). 없으면 null", example = "0.43")
+    private Float anomalyScore;
+
+    @Schema(description = "다음 sample의 예상 전류값(A). 없으면 null", example = "5.19")
+    private Float predictedCurrent;
 }
