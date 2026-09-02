@@ -154,51 +154,56 @@
         LIMIT 10
     </select>
 
-    <!-- AI 서버에 보낼 회로별 최근 샘플을 시간순으로 조회 -->
-    <select id="findRecentSamples" resultMap="aiPredictionSampleResultMap">
-        SELECT
-            latest.current_a AS am,
-            latest.arc_counter AS `count`
+    <!-- Frame Alignment 보강(ADR-011 개정) - AI Request 하나에 들어갈 context/circuit samples가
+         반드시 같은 frame window에서 나오도록, 분전반의 최근 N개 sensor_frame.frame_id를 먼저 확정한다.
+         이 결과를 findSamplesByFrameIds/findContextSamplesByFrameIds에 그대로 전달해서 쓴다. -->
+    <select id="findRecentFrameIds" resultType="java.lang.Long">
+        SELECT latest.frame_id
         FROM (
-            SELECT
-                sfc.current_a,
-                sfc.arc_counter,
-                sfc.reading_id
-            FROM sensor_frame_circuit sfc
-            WHERE sfc.circuit_id = #{circuitId}
-            ORDER BY sfc.reading_id DESC
-            LIMIT #{sampleSize}
-        ) latest
-        ORDER BY latest.reading_id ASC
-    </select>
-
-    <!-- 신규 확장 context용 - 분전반의 최근 sensor_frame(공통 센서값) 시계열을 시간순으로 조회.
-         circuit별 findRecentSamples와 동일한 DESC-LIMIT 후 ASC 재정렬 패턴을 사용해 oldest -> newest를 보장한다.
-         회로별 findRecentSamples와는 서로 다른 쿼리·테이블이라 프레임 집합이 100% 동일하다고 강제하지 않는다 -
-         정상 운영에서는 프레임마다 sensor_frame 1건 + 활성 회로 수만큼 sensor_frame_circuit이 함께 저장되므로
-         사실상 같은 프레임 집합이 된다(SensorIngestService 참고). 개수가 어긋나면 AI 서버가 Risk/Anomaly만
-         계산하지 않고 넘어간다(firesafety-ai .agent-docs/api-contract.md) - Spring Boot가 억지로 맞추지 않는다. -->
-    <select id="findRecentContextSamples" resultMap="aiPredictionContextSampleResultMap">
-        SELECT
-            latest.volt_v AS voltage,
-            latest.leak_ma AS leakage_current,
-            latest.temperature AS temperature,
-            latest.humidity AS humidity,
-            latest.fire_raw AS fire_raw,
-            latest.gas_raw AS gas_raw,
-            latest.door_status AS door_open,
-            latest.total_current AS total_current,
-            latest.total_power AS total_power
-        FROM (
-            SELECT
-                frame_id, volt_v, leak_ma, temperature, humidity,
-                fire_raw, gas_raw, door_status, total_current, total_power
+            SELECT frame_id
             FROM sensor_frame
             WHERE panel_id = #{panelId}
             ORDER BY frame_id DESC
             LIMIT #{sampleSize}
         ) latest
         ORDER BY latest.frame_id ASC
+    </select>
+
+    <!-- 확정된 frame_id 목록 안에서만 회로 샘플 조회. 회로에 그 프레임이 없으면(gap) 그만큼 적게
+         반환된다 - 목록 밖의 다른(더 과거) 프레임으로 채워서 개수를 맞추지 않는다. 이렇게 해야
+         "개수는 같은데 실제 frame은 다른" 상황이 구조적으로 발생하지 않는다. -->
+    <select id="findSamplesByFrameIds" resultMap="aiPredictionSampleResultMap">
+        SELECT
+            sfc.current_a AS am,
+            sfc.arc_counter AS `count`
+        FROM sensor_frame_circuit sfc
+        WHERE sfc.circuit_id = #{circuitId}
+          AND sfc.frame_id IN
+          <foreach collection="frameIds" item="frameId" open="(" separator="," close=")">
+              #{frameId}
+          </foreach>
+        ORDER BY sfc.frame_id ASC
+    </select>
+
+    <!-- 확정된 frame_id 목록 안에서만 분전반 공통 context 조회 -->
+    <select id="findContextSamplesByFrameIds" resultMap="aiPredictionContextSampleResultMap">
+        SELECT
+            volt_v AS voltage,
+            leak_ma AS leakage_current,
+            temperature AS temperature,
+            humidity AS humidity,
+            fire_raw AS fire_raw,
+            gas_raw AS gas_raw,
+            door_status AS door_open,
+            total_current AS total_current,
+            total_power AS total_power
+        FROM sensor_frame
+        WHERE panel_id = #{panelId}
+          AND frame_id IN
+          <foreach collection="frameIds" item="frameId" open="(" separator="," close=")">
+              #{frameId}
+          </foreach>
+        ORDER BY frame_id ASC
     </select>
 
     <!-- 수동 진단 실행 시 저장에 쓸, 이 회로의 가장 최근 프레임ID -->

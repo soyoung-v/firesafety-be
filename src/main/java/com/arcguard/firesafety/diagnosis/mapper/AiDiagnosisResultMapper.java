@@ -28,13 +28,18 @@ public interface AiDiagnosisResultMapper {
     List<AiPredictionCircuitTarget> findPredictionCircuitTargets(@Param("panelId") Long panelId,
                                                                  @Param("minSampleSize") int minSampleSize);
 
-    // AI 요청에 사용할 회로별 최근 샘플 조회
-    List<AiPredictionSampleReq> findRecentSamples(@Param("circuitId") Long circuitId,
-                                                  @Param("sampleSize") int sampleSize);
+    // Frame Alignment 보강 - AI Request 하나(context+circuit samples)가 반드시 같은 frame window를
+    // 쓰도록, 분전반의 최근 N개 sensor_frame.frame_id를 먼저 확정한다 (오래된 것 -> 최신 순)
+    List<Long> findRecentFrameIds(@Param("panelId") Long panelId, @Param("sampleSize") int sampleSize);
 
-    // 신규 확장 context용 - 분전반의 최근 sensor_frame 시계열(오래된 것 -> 최신 순) 조회
-    List<AiPredictionContextSampleReq> findRecentContextSamples(@Param("panelId") Long panelId,
-                                                                 @Param("sampleSize") int sampleSize);
+    // 확정된 frame_id 목록 안에서만 회로 샘플 조회 - 회로에 그 프레임이 없으면 그만큼 적게 반환되고,
+    // 목록 밖의 다른 프레임으로 채워 넣지 않는다(= context와 다른 frame이 섞이는 것을 원천 차단, ADR-011 개정)
+    List<AiPredictionSampleReq> findSamplesByFrameIds(@Param("circuitId") Long circuitId,
+                                                       @Param("frameIds") List<Long> frameIds);
+
+    // 확정된 frame_id 목록 안에서만 분전반 공통 context 조회
+    List<AiPredictionContextSampleReq> findContextSamplesByFrameIds(@Param("panelId") Long panelId,
+                                                                     @Param("frameIds") List<Long> frameIds);
 
     // 수동 진단 실행 시 저장용으로 쓸 회로의 가장 최근 프레임ID 조회 (없으면 null)
     Long findLatestFrameId(@Param("circuitId") Long circuitId);

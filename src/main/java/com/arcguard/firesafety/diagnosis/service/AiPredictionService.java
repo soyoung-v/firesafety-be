@@ -79,9 +79,11 @@ public class AiPredictionService {
             throw new BusinessException(DiagnosisErrorCode.AI_PREDICTION_UNAVAILABLE);
         }
 
-        List<AiPredictionSampleReq> samples = aiDiagnosisResultMapper.findRecentSamples(
-                circuit.getCircuitId(),
-                aiPredictionProperties.getSampleSize()
+        List<Long> frameIds = aiDiagnosisResultMapper.findRecentFrameIds(
+                panel.getPanelId(), aiPredictionProperties.getSampleSize()
+        );
+        List<AiPredictionSampleReq> samples = aiDiagnosisResultMapper.findSamplesByFrameIds(
+                circuit.getCircuitId(), frameIds
         );
         // 샘플이 최소 기준(30개)에 못 미치면 조용히 건너뜀 - 트리거 자체는 항상 성공(requested:true)이고
         // 판정 결과가 새로 생기냐 아니냐만 달라지는 비동기 동작이라 여기서 에러를 던지지 않는다.
@@ -96,7 +98,7 @@ public class AiPredictionService {
         target.setLatestFrameId(aiDiagnosisResultMapper.findLatestFrameId(circuit.getCircuitId()));
 
         AiPredictionCircuitReq circuitRequest = new AiPredictionCircuitReq(circuit.getChannelNo(), samples);
-        AiPredictionContextReq context = buildContext(panel.getPanelId());
+        AiPredictionContextReq context = buildContext(panel.getPanelId(), frameIds);
         AiPredictionReq request = new AiPredictionReq(panel.getMNo(), List.of(circuitRequest), context);
         AiPredictionRes response = aiPredictionClient.predict(request);
 
@@ -106,31 +108,36 @@ public class AiPredictionService {
         }
     }
 
-    // AI 요청 DTO 생성 - 회로별 샘플(기존 계약)과 분전반 공통 context(신규 확장)를 함께 담는다
+    // AI 요청 DTO 생성 - 회로별 샘플(기존 계약)과 분전반 공통 context(신규 확장)를 함께 담는다.
+    // Frame Alignment 보강(ADR-011 개정): 분전반의 frame_id 목록을 먼저 확정한 뒤, context와 회로 샘플
+    // 모두 그 목록 안에서만 조회한다 - 두 값이 서로 다른 시간창에서 만들어지는 것을 원천 차단한다.
     private AiPredictionReq buildRequest(Long panelId, String mNo, List<AiPredictionCircuitTarget> circuits) {
+        List<Long> frameIds = aiDiagnosisResultMapper.findRecentFrameIds(panelId, aiPredictionProperties.getSampleSize());
         List<AiPredictionCircuitReq> circuitRequests = circuits.stream()
-                .map(this::buildCircuitRequest)
+                .map(circuit -> buildCircuitRequest(circuit, frameIds))
                 .toList();
-        AiPredictionContextReq context = buildContext(panelId);
+        AiPredictionContextReq context = buildContext(panelId, frameIds);
         return new AiPredictionReq(mNo, circuitRequests, context);
     }
 
-    // 회로별 최근 샘플 조회 후 요청 DTO 생성
-    private AiPredictionCircuitReq buildCircuitRequest(AiPredictionCircuitTarget circuit) {
-        List<AiPredictionSampleReq> samples = aiDiagnosisResultMapper.findRecentSamples(
-                circuit.getCircuitId(),
-                aiPredictionProperties.getSampleSize()
+    // 확정된 frame_id 목록 안에서만 회로 샘플 조회 후 요청 DTO 생성
+    private AiPredictionCircuitReq buildCircuitRequest(AiPredictionCircuitTarget circuit, List<Long> frameIds) {
+        List<AiPredictionSampleReq> samples = aiDiagnosisResultMapper.findSamplesByFrameIds(
+                circuit.getCircuitId(), frameIds
         );
         return new AiPredictionCircuitReq(circuit.getChannelNo(), samples);
     }
 
-    // 분전반 공통 context 조회 - 값이 없으면 null을 그대로 둔다(가짜 값 생성 금지, Phase 9 명세 7절).
-    // 신규 확장이 실패해도 기존 ARC 판정 흐름이 죽으면 안 되므로 조회 예외를 여기서 흡수한다.
-    private AiPredictionContextReq buildContext(Long panelId) {
+    // 확정된 frame_id 목록 안에서만 분전반 공통 context 조회 - 값이 없으면 null을 그대로 둔다
+    // (가짜 값 생성 금지, Phase 9 명세 7절). 신규 확장이 실패해도 기존 ARC 판정 흐름이 죽으면 안 되므로
+    // 조회 예외를 여기서 흡수한다.
+    private AiPredictionContextReq buildContext(Long panelId, List<Long> frameIds) {
+        if (frameIds.isEmpty()) {
+            return null;
+        }
         try {
-            List<AiPredictionContextSampleReq> samples = aiDiagnosisResultMapper.findRecentContextSamples(
-                    panelId,
-                    aiPredictionProperties.getSampleSize()
+            List<AiPredictionContextSampleReq> samples = aiDiagnosisResultMapper.findContextSamplesByFrameIds(
+                    panelId, frameIds
             );
             if (samples.isEmpty()) {
                 return null;
