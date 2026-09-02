@@ -78,7 +78,8 @@ class AiPredictionServiceTest {
         // given
         when(aiDiagnosisResultMapper.findPredictionPanels(30)).thenReturn(List.of(panelTarget()));
         when(aiDiagnosisResultMapper.findPredictionCircuitTargets(10L, 30)).thenReturn(List.of(circuitTarget()));
-        when(aiDiagnosisResultMapper.findRecentSamples(20L, 60)).thenReturn(List.of(sample("12.3", 4)));
+        when(aiDiagnosisResultMapper.findRecentFrameIds(10L, 60)).thenReturn(frameIdWindow());
+        when(aiDiagnosisResultMapper.findSamplesByFrameIds(20L, frameIdWindow())).thenReturn(List.of(sample("12.3", 4)));
         when(aiPredictionClient.predict(org.mockito.Mockito.any())).thenReturn(aiResponse());
 
         // when
@@ -120,7 +121,8 @@ class AiPredictionServiceTest {
     @DisplayName("AI-001: 샘플이 최소 기준보다 적으면 AI 서버를 호출하지 않고 조용히 넘어간다")
     void predictCircuitSkipsWhenSamplesInsufficient() {
         // given
-        when(aiDiagnosisResultMapper.findRecentSamples(20L, 60)).thenReturn(sampleListOfSize(10));
+        when(aiDiagnosisResultMapper.findRecentFrameIds(10L, 60)).thenReturn(frameIdWindow());
+        when(aiDiagnosisResultMapper.findSamplesByFrameIds(20L, frameIdWindow())).thenReturn(sampleListOfSize(10));
 
         // when
         aiPredictionService.predictCircuit(panel(), circuit());
@@ -134,7 +136,8 @@ class AiPredictionServiceTest {
     @DisplayName("AI-001: 샘플이 충분하면 AI 서버를 호출해 결과를 저장하고 분전반 상태를 재집계한다")
     void predictCircuitCallsAiServerAndSavesResult() {
         // given
-        when(aiDiagnosisResultMapper.findRecentSamples(20L, 60)).thenReturn(sampleListOfSize(30));
+        when(aiDiagnosisResultMapper.findRecentFrameIds(10L, 60)).thenReturn(frameIdWindow());
+        when(aiDiagnosisResultMapper.findSamplesByFrameIds(20L, frameIdWindow())).thenReturn(sampleListOfSize(30));
         when(aiDiagnosisResultMapper.findLatestFrameId(20L)).thenReturn(500L);
         when(aiPredictionClient.predict(any())).thenReturn(aiResponse());
 
@@ -153,9 +156,10 @@ class AiPredictionServiceTest {
     @DisplayName("Phase 9: context 샘플이 있으면 AI 요청에 context를 채워 보내고, 신규 확장 결과도 그대로 저장한다")
     void predictCircuitIncludesContextAndExtendedResults() {
         // given
-        when(aiDiagnosisResultMapper.findRecentSamples(20L, 60)).thenReturn(sampleListOfSize(30));
+        when(aiDiagnosisResultMapper.findRecentFrameIds(10L, 60)).thenReturn(frameIdWindow());
+        when(aiDiagnosisResultMapper.findSamplesByFrameIds(20L, frameIdWindow())).thenReturn(sampleListOfSize(30));
         when(aiDiagnosisResultMapper.findLatestFrameId(20L)).thenReturn(500L);
-        when(aiDiagnosisResultMapper.findRecentContextSamples(10L, 60)).thenReturn(List.of(contextSample()));
+        when(aiDiagnosisResultMapper.findContextSamplesByFrameIds(10L, frameIdWindow())).thenReturn(List.of(contextSample()));
         when(aiPredictionClient.predict(any())).thenReturn(aiResponseWithExtendedFields());
 
         // when
@@ -177,9 +181,11 @@ class AiPredictionServiceTest {
     @DisplayName("Phase 9: context 조회에 실패해도 Legacy ARC 판정 흐름은 그대로 진행된다")
     void predictCircuitContinuesWhenContextLookupFails() {
         // given
-        when(aiDiagnosisResultMapper.findRecentSamples(20L, 60)).thenReturn(sampleListOfSize(30));
+        when(aiDiagnosisResultMapper.findRecentFrameIds(10L, 60)).thenReturn(frameIdWindow());
+        when(aiDiagnosisResultMapper.findSamplesByFrameIds(20L, frameIdWindow())).thenReturn(sampleListOfSize(30));
         when(aiDiagnosisResultMapper.findLatestFrameId(20L)).thenReturn(500L);
-        when(aiDiagnosisResultMapper.findRecentContextSamples(10L, 60)).thenThrow(new RuntimeException("context 조회 실패"));
+        when(aiDiagnosisResultMapper.findContextSamplesByFrameIds(10L, frameIdWindow()))
+                .thenThrow(new RuntimeException("context 조회 실패"));
         when(aiPredictionClient.predict(any())).thenReturn(aiResponse());
 
         // when
@@ -195,6 +201,54 @@ class AiPredictionServiceTest {
                 null, null, null, null, null
         );
         verify(panelStatusAggregationService).aggregatePanelStatus(10L);
+    }
+
+    @Test
+    @DisplayName("Phase 9 ADR-012: context와 회로 샘플이 항상 같은 frame_id 목록(findRecentFrameIds 결과)으로 조회된다")
+    void predictCircuitUsesSameFrameWindowForContextAndSamples() {
+        // given
+        List<Long> frameIds = frameIdWindow();
+        when(aiDiagnosisResultMapper.findRecentFrameIds(10L, 60)).thenReturn(frameIds);
+        when(aiDiagnosisResultMapper.findSamplesByFrameIds(20L, frameIds)).thenReturn(sampleListOfSize(30));
+        when(aiDiagnosisResultMapper.findLatestFrameId(20L)).thenReturn(500L);
+        when(aiDiagnosisResultMapper.findContextSamplesByFrameIds(10L, frameIds)).thenReturn(List.of(contextSample()));
+        when(aiPredictionClient.predict(any())).thenReturn(aiResponse());
+
+        // when
+        aiPredictionService.predictCircuit(panel(), circuit());
+
+        // then: findRecentFrameIds는 한 번만 호출되고, 그 결과가 samples/context 조회에 동일하게 전달된다
+        verify(aiDiagnosisResultMapper, org.mockito.Mockito.times(1)).findRecentFrameIds(10L, 60);
+        ArgumentCaptor<List<Long>> samplesFrameIdsCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<Long>> contextFrameIdsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(aiDiagnosisResultMapper).findSamplesByFrameIds(org.mockito.Mockito.eq(20L), samplesFrameIdsCaptor.capture());
+        verify(aiDiagnosisResultMapper).findContextSamplesByFrameIds(org.mockito.Mockito.eq(10L), contextFrameIdsCaptor.capture());
+        assertThat(samplesFrameIdsCaptor.getValue()).isEqualTo(frameIds);
+        assertThat(contextFrameIdsCaptor.getValue()).isEqualTo(frameIds);
+        assertThat(samplesFrameIdsCaptor.getValue()).isEqualTo(contextFrameIdsCaptor.getValue());
+    }
+
+    @Test
+    @DisplayName("Phase 9 ADR-012: 분전반에 확정할 frame_id가 하나도 없으면 context 조회를 아예 생략하고 null로 둔다")
+    void predictCircuitSkipsContextWhenFrameWindowEmpty() {
+        // given
+        when(aiDiagnosisResultMapper.findRecentFrameIds(10L, 60)).thenReturn(List.of());
+        when(aiDiagnosisResultMapper.findSamplesByFrameIds(20L, List.of())).thenReturn(sampleListOfSize(30));
+        when(aiDiagnosisResultMapper.findLatestFrameId(20L)).thenReturn(500L);
+        when(aiPredictionClient.predict(any())).thenReturn(aiResponse());
+
+        // when
+        aiPredictionService.predictCircuit(panel(), circuit());
+
+        // then
+        verify(aiDiagnosisResultMapper, never()).findContextSamplesByFrameIds(org.mockito.Mockito.anyLong(), org.mockito.Mockito.anyList());
+        ArgumentCaptor<AiPredictionReq> requestCaptor = ArgumentCaptor.forClass(AiPredictionReq.class);
+        verify(aiPredictionClient).predict(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().getContext()).isNull();
+    }
+
+    private List<Long> frameIdWindow() {
+        return List.of(101L, 102L, 103L);
     }
 
     private AiPredictionContextSampleReq contextSample() {
