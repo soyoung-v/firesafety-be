@@ -19,6 +19,18 @@
         <result property="count" column="count"/>
     </resultMap>
 
+    <resultMap id="aiPredictionContextSampleResultMap" type="com.arcguard.firesafety.diagnosis.dto.req.AiPredictionContextSampleReq">
+        <result property="voltage" column="voltage"/>
+        <result property="leakageCurrent" column="leakage_current"/>
+        <result property="temperature" column="temperature"/>
+        <result property="humidity" column="humidity"/>
+        <result property="fireRaw" column="fire_raw"/>
+        <result property="gasRaw" column="gas_raw"/>
+        <result property="doorOpen" column="door_open"/>
+        <result property="totalCurrent" column="total_current"/>
+        <result property="totalPower" column="total_power"/>
+    </resultMap>
+
     <resultMap id="diagnosisResultResResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultRes">
         <id property="resultId" column="result_id"/>
         <result property="circuitId" column="circuit_id"/>
@@ -29,6 +41,11 @@
         <result property="warning" column="warning"/>
         <result property="triggerType" column="trigger_type"/>
         <result property="diagnosedAt" column="diagnosed_at"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="riskScore" column="risk_score"/>
+        <result property="anomaly" column="anomaly"/>
+        <result property="anomalyScore" column="anomaly_score"/>
+        <result property="predictedCurrent" column="predicted_current"/>
     </resultMap>
 
     <resultMap id="panelDiagnosisRecentResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisRecentRes">
@@ -41,6 +58,11 @@
         <result property="warning" column="warning"/>
         <result property="triggerType" column="trigger_type"/>
         <result property="diagnosedAt" column="diagnosed_at"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="riskScore" column="risk_score"/>
+        <result property="anomaly" column="anomaly"/>
+        <result property="anomalyScore" column="anomaly_score"/>
+        <result property="predictedCurrent" column="predicted_current"/>
     </resultMap>
 
     <resultMap id="panelDiagnosisSampleStatusResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisSampleStatusRes">
@@ -62,7 +84,12 @@
             confidence,
             n_samples,
             warning,
-            trigger_type
+            trigger_type,
+            risk_level,
+            risk_score,
+            anomaly,
+            anomaly_score,
+            predicted_current
         ) VALUES (
             #{circuitId},
             #{frameId},
@@ -70,7 +97,12 @@
             #{confidence},
             #{nSamples},
             #{warning},
-            #{triggerType}
+            #{triggerType},
+            #{riskLevel},
+            #{riskScore},
+            #{anomaly},
+            #{anomalyScore},
+            #{predictedCurrent}
         )
     </insert>
 
@@ -140,6 +172,35 @@
         ORDER BY latest.reading_id ASC
     </select>
 
+    <!-- 신규 확장 context용 - 분전반의 최근 sensor_frame(공통 센서값) 시계열을 시간순으로 조회.
+         circuit별 findRecentSamples와 동일한 DESC-LIMIT 후 ASC 재정렬 패턴을 사용해 oldest -> newest를 보장한다.
+         회로별 findRecentSamples와는 서로 다른 쿼리·테이블이라 프레임 집합이 100% 동일하다고 강제하지 않는다 -
+         정상 운영에서는 프레임마다 sensor_frame 1건 + 활성 회로 수만큼 sensor_frame_circuit이 함께 저장되므로
+         사실상 같은 프레임 집합이 된다(SensorIngestService 참고). 개수가 어긋나면 AI 서버가 Risk/Anomaly만
+         계산하지 않고 넘어간다(firesafety-ai .agent-docs/api-contract.md) - Spring Boot가 억지로 맞추지 않는다. -->
+    <select id="findRecentContextSamples" resultMap="aiPredictionContextSampleResultMap">
+        SELECT
+            latest.volt_v AS voltage,
+            latest.leak_ma AS leakage_current,
+            latest.temperature AS temperature,
+            latest.humidity AS humidity,
+            latest.fire_raw AS fire_raw,
+            latest.gas_raw AS gas_raw,
+            latest.door_status AS door_open,
+            latest.total_current AS total_current,
+            latest.total_power AS total_power
+        FROM (
+            SELECT
+                frame_id, volt_v, leak_ma, temperature, humidity,
+                fire_raw, gas_raw, door_status, total_current, total_power
+            FROM sensor_frame
+            WHERE panel_id = #{panelId}
+            ORDER BY frame_id DESC
+            LIMIT #{sampleSize}
+        ) latest
+        ORDER BY latest.frame_id ASC
+    </select>
+
     <!-- 수동 진단 실행 시 저장에 쓸, 이 회로의 가장 최근 프레임ID -->
     <select id="findLatestFrameId" resultType="java.lang.Long">
         SELECT MAX(sfc.frame_id)
@@ -158,7 +219,12 @@
             n_samples,
             warning,
             trigger_type,
-            diagnosed_at
+            diagnosed_at,
+            risk_level,
+            risk_score,
+            anomaly,
+            anomaly_score,
+            predicted_current
         FROM ai_diagnosis_result
         WHERE circuit_id = #{circuitId}
         ORDER BY diagnosed_at DESC, result_id DESC
@@ -219,7 +285,12 @@
             ai.n_samples,
             ai.warning,
             ai.trigger_type,
-            ai.diagnosed_at
+            ai.diagnosed_at,
+            ai.risk_level,
+            ai.risk_score,
+            ai.anomaly,
+            ai.anomaly_score,
+            ai.predicted_current
         FROM ai_diagnosis_result ai
         INNER JOIN circuit c ON c.circuit_id = ai.circuit_id
         WHERE c.panel_id = #{panelId}

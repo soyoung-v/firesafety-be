@@ -67,7 +67,8 @@ public class MockAiPredictionScheduler {
         try {
             aiDiagnosisResultSaveService.save(
                     panel.getPanelId(), circuit.getCircuitId(), circuit.getLatestFrameId(), Verdict.ARC, confidence,
-                    null, null, DiagnosisTriggerType.MOCK
+                    null, null, DiagnosisTriggerType.MOCK,
+                    null, null, null, null, null
             );
         } catch (RuntimeException e) {
             log.warn("Mock AI 판정 저장 실패 - panelId={}, circuitId={}, message={}",

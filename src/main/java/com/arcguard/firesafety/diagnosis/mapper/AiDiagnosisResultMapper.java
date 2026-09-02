@@ -1,5 +1,6 @@
 package com.arcguard.firesafety.diagnosis.mapper;
 
+import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionContextSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultRes;
 import com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisRecentRes;
@@ -30,6 +31,10 @@ public interface AiDiagnosisResultMapper {
     // AI 요청에 사용할 회로별 최근 샘플 조회
     List<AiPredictionSampleReq> findRecentSamples(@Param("circuitId") Long circuitId,
                                                   @Param("sampleSize") int sampleSize);
+
+    // 신규 확장 context용 - 분전반의 최근 sensor_frame 시계열(오래된 것 -> 최신 순) 조회
+    List<AiPredictionContextSampleReq> findRecentContextSamples(@Param("panelId") Long panelId,
+                                                                 @Param("sampleSize") int sampleSize);
 
     // 수동 진단 실행 시 저장용으로 쓸 회로의 가장 최근 프레임ID 조회 (없으면 null)
     Long findLatestFrameId(@Param("circuitId") Long circuitId);

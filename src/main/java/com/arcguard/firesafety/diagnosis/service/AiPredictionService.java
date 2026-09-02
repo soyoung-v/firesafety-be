@@ -3,6 +3,8 @@ package com.arcguard.firesafety.diagnosis.service;
 import com.arcguard.firesafety.common.exception.BusinessException;
 import com.arcguard.firesafety.diagnosis.config.AiPredictionProperties;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionCircuitReq;
+import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionContextReq;
+import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionContextSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionReq;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.res.AiPredictionRes;
@@ -59,7 +61,7 @@ public class AiPredictionService {
             return 0;
         }
 
-        AiPredictionReq request = buildRequest(panel.getMNo(), circuits);
+        AiPredictionReq request = buildRequest(panel.getPanelId(), panel.getMNo(), circuits);
         AiPredictionRes response = aiPredictionClient.predict(request);
 
         int savedCount = saveResponse(panel.getPanelId(), circuits, response, DiagnosisTriggerType.AUTO);
@@ -94,7 +96,8 @@ public class AiPredictionService {
         target.setLatestFrameId(aiDiagnosisResultMapper.findLatestFrameId(circuit.getCircuitId()));
 
         AiPredictionCircuitReq circuitRequest = new AiPredictionCircuitReq(circuit.getChannelNo(), samples);
-        AiPredictionReq request = new AiPredictionReq(panel.getMNo(), List.of(circuitRequest));
+        AiPredictionContextReq context = buildContext(panel.getPanelId());
+        AiPredictionReq request = new AiPredictionReq(panel.getMNo(), List.of(circuitRequest), context);
         AiPredictionRes response = aiPredictionClient.predict(request);
 
         int savedCount = saveResponse(panel.getPanelId(), List.of(target), response, DiagnosisTriggerType.MANUAL);
@@ -103,12 +106,13 @@ public class AiPredictionService {
         }
     }
 
-    // AI 요청 DTO 생성
-    private AiPredictionReq buildRequest(String mNo, List<AiPredictionCircuitTarget> circuits) {
+    // AI 요청 DTO 생성 - 회로별 샘플(기존 계약)과 분전반 공통 context(신규 확장)를 함께 담는다
+    private AiPredictionReq buildRequest(Long panelId, String mNo, List<AiPredictionCircuitTarget> circuits) {
         List<AiPredictionCircuitReq> circuitRequests = circuits.stream()
                 .map(this::buildCircuitRequest)
                 .toList();
-        return new AiPredictionReq(mNo, circuitRequests);
+        AiPredictionContextReq context = buildContext(panelId);
+        return new AiPredictionReq(mNo, circuitRequests, context);
     }
 
     // 회로별 최근 샘플 조회 후 요청 DTO 생성
@@ -118,6 +122,24 @@ public class AiPredictionService {
                 aiPredictionProperties.getSampleSize()
         );
         return new AiPredictionCircuitReq(circuit.getChannelNo(), samples);
+    }
+
+    // 분전반 공통 context 조회 - 값이 없으면 null을 그대로 둔다(가짜 값 생성 금지, Phase 9 명세 7절).
+    // 신규 확장이 실패해도 기존 ARC 판정 흐름이 죽으면 안 되므로 조회 예외를 여기서 흡수한다.
+    private AiPredictionContextReq buildContext(Long panelId) {
+        try {
+            List<AiPredictionContextSampleReq> samples = aiDiagnosisResultMapper.findRecentContextSamples(
+                    panelId,
+                    aiPredictionProperties.getSampleSize()
+            );
+            if (samples.isEmpty()) {
+                return null;
+            }
+            return new AiPredictionContextReq(samples);
+        } catch (RuntimeException e) {
+            log.warn("AI context 조회 실패 - Legacy ARC 판정은 계속 진행: panelId={}", panelId, e);
+            return null;
+        }
     }
 
     // AI 응답을 회로별 진단결과로 저장
@@ -146,7 +168,12 @@ public class AiPredictionService {
                     result.getProba(),
                     result.getNSamples(),
                     result.getWarning(),
-                    triggerType
+                    triggerType,
+                    result.getRiskLevel(),
+                    result.getRiskScore(),
+                    result.getAnomaly(),
+                    result.getAnomalyScore(),
+                    result.getPredictedCurrent()
             );
             savedCount++;
         }
