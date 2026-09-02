@@ -6,6 +6,7 @@ import com.arcguard.firesafety.common.exception.CommonErrorCode;
 import com.arcguard.firesafety.common.security.UserPrincipal;
 import com.arcguard.firesafety.diagnosis.config.AiPredictionProperties;
 import com.arcguard.firesafety.diagnosis.dto.req.DiagnosisResultListReq;
+import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisExplanationRes;
 import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultPageRes;
 import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultRes;
 import com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisRecentRes;
@@ -44,6 +45,7 @@ public class DiagnosisQueryService {
     private final SiteMapper siteMapper;
     private final AiPredictionService aiPredictionService;
     private final AiPredictionProperties aiPredictionProperties;
+    private final AiDiagnosisExplanationService aiDiagnosisExplanationService;
 
     // 회로 진단결과 조회
     // 1. 현재 사용자 확인 → 2. 회로/상위 설비 확인 → 3. 현장 접근 권한 확인 → 4. AI 판정 이력 조회
@@ -88,6 +90,18 @@ public class DiagnosisQueryService {
         validateSiteAccess(actor, panel.getSiteId());
 
         aiPredictionService.predictCircuit(panel, circuit);
+    }
+
+    // AI 진단 설명 생성/조회 (Phase 11, REQ-11x) - 이미 analysisSummary가 있으면 DB 값을 그대로 반환하고
+    // 외부 AI 호출은 발생하지 않는다. 조회 API와 같은 권한 검증을 재사용한다.
+    public DiagnosisExplanationRes getOrCreateExplanation(Long circuitId, Long resultId) {
+        UserPrincipal actor = getCurrentUser();
+        Circuit circuit = findActiveCircuit(circuitId);
+        Panel panel = findActivePanel(circuit.getPanelId());
+        validateSiteAccess(actor, panel.getSiteId());
+
+        String analysisSummary = aiDiagnosisExplanationService.getOrCreateExplanation(circuit, resultId);
+        return new DiagnosisExplanationRes(analysisSummary);
     }
 
     // 분전반 단위 AI 진단 현황 조회

@@ -58,4 +58,8 @@ public class DiagnosisResultRes {
 
     @Schema(description = "다음 sample의 예상 전류값(A). 없으면 null", example = "5.19")
     private Float predictedCurrent;
+
+    @Schema(description = "ML 판정 결과에 대한 LLM 자연어 설명. 사용자가 설명 생성을 요청하기 전까지는 null "
+            + "(자동 생성되지 않는다)", example = "최근 전류 증가와 이상 패턴이 함께 감지되었습니다.")
+    private String analysisSummary;
 }

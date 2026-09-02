@@ -4,6 +4,7 @@ import com.arcguard.firesafety.common.response.ResultResponse;
 import com.arcguard.firesafety.config.swagger.OpenApiConfig;
 import com.arcguard.firesafety.diagnosis.dto.req.DiagnosisResultListReq;
 import com.arcguard.firesafety.diagnosis.dto.res.AiPredictionTriggerRes;
+import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisExplanationRes;
 import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultPageRes;
 import com.arcguard.firesafety.diagnosis.service.DiagnosisQueryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,6 +44,24 @@ public class DiagnosisController {
     public ResultResponse<AiPredictionTriggerRes> triggerDiagnosis(@PathVariable Long circuitId) {
         diagnosisQueryService.triggerManualDiagnosis(circuitId);
         return ResultResponse.success("AI 진단 요청 성공", new AiPredictionTriggerRes(true));
+    }
+
+    // AI 진단 설명 생성/조회 (Phase 11)
+    // 이미 설명이 저장되어 있으면 DB 값을 그대로 반환하고 외부 AI 서버를 다시 호출하지 않는다(비용 통제,
+    // ADR-013) - 진단 생성 시점에 자동 호출되지 않으며 오직 이 요청이 있어야만 최초 1회 생성된다.
+    @Operation(
+            summary = "AI 진단 설명 생성/조회",
+            description = "해당 AI 진단 결과에 대한 ML 판정 결과의 자연어 설명(analysisSummary)을 반환한다. "
+                    + "LLM은 위험도를 새로 판정하지 않으며 이미 계산된 verdict/riskLevel 등을 설명만 한다. "
+                    + "이미 설명이 저장되어 있으면 외부 AI 호출 없이 DB 값을 그대로 반환한다(캐시). "
+                    + "AI_EXPLANATION_ENABLED가 꺼져 있으면 503, 진단 결과가 없거나 다른 회로 소속이면 404, "
+                    + "AI 서버 호출이 실패하면 502를 반환한다."
+    )
+    @PostMapping("/{circuitId}/diagnosis/{resultId}/explanation")
+    public ResultResponse<DiagnosisExplanationRes> getOrCreateExplanation(@PathVariable Long circuitId,
+                                                                           @PathVariable Long resultId) {
+        DiagnosisExplanationRes result = diagnosisQueryService.getOrCreateExplanation(circuitId, resultId);
+        return ResultResponse.success("AI 진단 설명 조회 성공", result);
     }
 
 }
