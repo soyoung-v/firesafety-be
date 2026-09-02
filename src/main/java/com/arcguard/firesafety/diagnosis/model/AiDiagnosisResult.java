@@ -29,4 +29,7 @@ public class AiDiagnosisResult {
     private Boolean anomaly;
     private Float anomalyScore;
     private Float predictedCurrent;
+
+    // Phase 11: LLM 설명 캐시 - 사용자가 설명 생성을 요청하기 전까지 NULL. 자동으로 채워지지 않는다(ADR-013).
+    private String analysisSummary;
 }

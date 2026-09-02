@@ -1,5 +1,6 @@
 package com.arcguard.firesafety.diagnosis.mapper;
 
+import com.arcguard.firesafety.diagnosis.dto.req.AiExplanationSensorEvidenceReq;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionContextSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.req.AiPredictionSampleReq;
 import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultRes;
@@ -70,4 +71,17 @@ public interface AiDiagnosisResultMapper {
 
     List<PanelDiagnosisSampleStatusRes> findSampleInsufficientCircuits(@Param("panelId") Long panelId,
                                                                        @Param("minSampleSize") int minSampleSize);
+
+    // Phase 11: LLM 설명(analysisSummary) 생성/캐시용 - 진단 결과 1건 단건 조회
+    AiDiagnosisResult findById(@Param("resultId") Long resultId);
+
+    // 진단이 실제로 사용한 frame_id 시점의 센서 스냅샷 조회(ADR-013) - "현재 최신값"이 아니라 그 진단
+    // 당시의 정확한 값. 해당 frame이 없으면(예: 아주 오래된 데이터) null을 반환한다.
+    AiExplanationSensorEvidenceReq findSensorEvidence(@Param("circuitId") Long circuitId,
+                                                       @Param("panelId") Long panelId,
+                                                       @Param("frameId") Long frameId);
+
+    // analysis_summary가 아직 비어 있을 때만 채운다(원자적 조건부 UPDATE) - 동시 최초 요청 중 한쪽만
+    // 실제로 저장에 성공하게 해서 DB를 단일 진실 소스로 유지한다. 반환값은 영향받은 row 수(0 또는 1).
+    int updateAnalysisSummaryIfAbsent(@Param("resultId") Long resultId, @Param("analysisSummary") String analysisSummary);
 }

@@ -79,6 +79,11 @@ constants:
     scheduler-delay-ms: ${AI_PREDICTION_SCHEDULER_DELAY_MS:60000}
     scheduler-initial-delay-ms: ${AI_PREDICTION_SCHEDULER_INITIAL_DELAY_MS:60000}
 
+  # LLM 진단 설명(POST /explain) 기능 - base-url은 위 ai-prediction.base-url을 그대로 재사용한다(같은 서버)
+  ai-explanation:
+    enabled: ${AI_EXPLANATION_ENABLED:false}
+    path: ${AI_EXPLAIN_PATH:/explain}
+
   password-reset:
     base-url: ${PASSWORD_RESET_BASE_URL:}
     token-expiration-minutes: ${PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES:30}

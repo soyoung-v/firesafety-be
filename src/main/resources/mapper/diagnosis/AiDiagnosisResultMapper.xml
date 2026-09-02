@@ -46,6 +46,7 @@
         <result property="anomaly" column="anomaly"/>
         <result property="anomalyScore" column="anomaly_score"/>
         <result property="predictedCurrent" column="predicted_current"/>
+        <result property="analysisSummary" column="analysis_summary"/>
     </resultMap>
 
     <resultMap id="panelDiagnosisRecentResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisRecentRes">
@@ -63,6 +64,25 @@
         <result property="anomaly" column="anomaly"/>
         <result property="anomalyScore" column="anomaly_score"/>
         <result property="predictedCurrent" column="predicted_current"/>
+        <result property="analysisSummary" column="analysis_summary"/>
+    </resultMap>
+
+    <resultMap id="aiDiagnosisResultResultMap" type="com.arcguard.firesafety.diagnosis.model.AiDiagnosisResult">
+        <id property="resultId" column="result_id"/>
+        <result property="circuitId" column="circuit_id"/>
+        <result property="frameId" column="frame_id"/>
+        <result property="verdict" column="verdict"/>
+        <result property="confidence" column="confidence"/>
+        <result property="nSamples" column="n_samples"/>
+        <result property="warning" column="warning"/>
+        <result property="triggerType" column="trigger_type"/>
+        <result property="diagnosedAt" column="diagnosed_at"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="riskScore" column="risk_score"/>
+        <result property="anomaly" column="anomaly"/>
+        <result property="anomalyScore" column="anomaly_score"/>
+        <result property="predictedCurrent" column="predicted_current"/>
+        <result property="analysisSummary" column="analysis_summary"/>
     </resultMap>
 
     <resultMap id="panelDiagnosisSampleStatusResultMap" type="com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisSampleStatusRes">
@@ -229,7 +249,8 @@
             risk_score,
             anomaly,
             anomaly_score,
-            predicted_current
+            predicted_current,
+            analysis_summary
         FROM ai_diagnosis_result
         WHERE circuit_id = #{circuitId}
         ORDER BY diagnosed_at DESC, result_id DESC
@@ -295,7 +316,8 @@
             ai.risk_score,
             ai.anomaly,
             ai.anomaly_score,
-            ai.predicted_current
+            ai.predicted_current,
+            ai.analysis_summary
         FROM ai_diagnosis_result ai
         INNER JOIN circuit c ON c.circuit_id = ai.circuit_id
         WHERE c.panel_id = #{panelId}
@@ -329,4 +351,52 @@
         HAVING COUNT(sfc.reading_id) &lt; #{minSampleSize}
         ORDER BY c.channel_no ASC
     </select>
+
+    <!-- Phase 11: LLM 설명(analysisSummary) 생성/캐시용 - 진단 결과 1건 단건 조회 -->
+    <select id="findById" resultMap="aiDiagnosisResultResultMap">
+        SELECT
+            result_id,
+            circuit_id,
+            frame_id,
+            verdict,
+            confidence,
+            n_samples,
+            warning,
+            trigger_type,
+            diagnosed_at,
+            risk_level,
+            risk_score,
+            anomaly,
+            anomaly_score,
+            predicted_current,
+            analysis_summary
+        FROM ai_diagnosis_result
+        WHERE result_id = #{resultId}
+    </select>
+
+    <!-- 진단이 실제로 사용한 frame_id 시점의 센서 스냅샷(ADR-013) - "현재 최신값"이 아니라 그 진단 당시의
+         정확한 값. sensor_frame_circuit(회로 전류/카운터)과 sensor_frame(분전반 공통값)을 같은 frame_id로
+         조인한다 - 단일 frame_id 기준이라 ADR-012의 window alignment 문제(개수는 같은데 frame이 다른
+         상황)는 애초에 발생할 수 없다. -->
+    <select id="findSensorEvidence" resultType="com.arcguard.firesafety.diagnosis.dto.req.AiExplanationSensorEvidenceReq">
+        SELECT
+            sfc.current_a AS current,
+            sfc.arc_counter AS arc_count,
+            sf.temperature AS temperature,
+            sf.leak_ma AS leakage_current,
+            sf.total_current AS total_current
+        FROM sensor_frame_circuit sfc
+        INNER JOIN sensor_frame sf ON sf.frame_id = sfc.frame_id AND sf.panel_id = #{panelId}
+        WHERE sfc.circuit_id = #{circuitId}
+          AND sfc.frame_id = #{frameId}
+    </select>
+
+    <!-- analysis_summary가 아직 NULL일 때만 채우는 원자적 조건부 UPDATE - 동시 최초 요청 중 한쪽만
+         실제로 저장에 성공한다(영향받은 row 수로 판별). -->
+    <update id="updateAnalysisSummaryIfAbsent">
+        UPDATE ai_diagnosis_result
+        SET analysis_summary = #{analysisSummary}
+        WHERE result_id = #{resultId}
+          AND analysis_summary IS NULL
+    </update>
 </mapper>
