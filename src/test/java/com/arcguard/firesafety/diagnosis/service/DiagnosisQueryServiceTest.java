@@ -7,6 +7,7 @@ import com.arcguard.firesafety.common.security.JwtUser;
 import com.arcguard.firesafety.common.security.UserPrincipal;
 import com.arcguard.firesafety.diagnosis.config.AiPredictionProperties;
 import com.arcguard.firesafety.diagnosis.dto.req.DiagnosisResultListReq;
+import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisExplanationRes;
 import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultPageRes;
 import com.arcguard.firesafety.diagnosis.dto.res.DiagnosisResultRes;
 import com.arcguard.firesafety.diagnosis.dto.res.PanelDiagnosisRecentRes;
@@ -60,6 +61,9 @@ class DiagnosisQueryServiceTest {
     @Mock
     private AiPredictionService aiPredictionService;
 
+    @Mock
+    private AiDiagnosisExplanationService aiDiagnosisExplanationService;
+
     private DiagnosisQueryService diagnosisQueryService;
 
     @BeforeEach
@@ -72,7 +76,8 @@ class DiagnosisQueryServiceTest {
                 panelMapper,
                 siteMapper,
                 aiPredictionService,
-                aiPredictionProperties
+                aiPredictionProperties,
+                aiDiagnosisExplanationService
         );
     }
 
@@ -279,6 +284,42 @@ class DiagnosisQueryServiceTest {
         assertThat(result.getLast24hArcCount()).isEqualTo(2L);
         assertThat(result.getRecentResults().get(0).getConfidence()).isEqualTo(0.9f);
         assertThat(result.getRecentArcResults().get(0).getTriggerType()).isEqualTo(DiagnosisTriggerType.AUTO);
+    }
+
+    @Test
+    @DisplayName("Phase 11: SUPER_ADMIN은 AI 진단 설명을 생성/조회할 수 있고 권한 확인 후 서비스로 위임한다")
+    void superAdminCanGetOrCreateExplanation() {
+        // given
+        loginAs(1L, UserRole.SUPER_ADMIN);
+        Circuit circuit = circuit();
+        when(circuitMapper.findActiveCircuitById(20L)).thenReturn(circuit);
+        when(panelMapper.findActivePanelById(10L)).thenReturn(panel());
+        when(siteMapper.findActiveSiteById(3L)).thenReturn(site());
+        when(aiDiagnosisExplanationService.getOrCreateExplanation(circuit, 100L)).thenReturn("요약 문장");
+
+        // when
+        DiagnosisExplanationRes result = diagnosisQueryService.getOrCreateExplanation(20L, 100L);
+
+        // then
+        assertThat(result.getAnalysisSummary()).isEqualTo("요약 문장");
+        verify(aiDiagnosisExplanationService).getOrCreateExplanation(circuit, 100L);
+    }
+
+    @Test
+    @DisplayName("Phase 11: 담당 현장이 아니면 AI 진단 설명을 생성/조회할 수 없다(외부 호출 없음)")
+    void unassignedSiteExplanationIsForbidden() {
+        // given
+        loginAs(2L, UserRole.GENERAL);
+        when(circuitMapper.findActiveCircuitById(20L)).thenReturn(circuit());
+        when(panelMapper.findActivePanelById(10L)).thenReturn(panel());
+        when(siteMapper.findActiveSiteById(3L)).thenReturn(site());
+        when(siteMapper.existsActiveSiteAssignment(2L, 3L)).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> diagnosisQueryService.getOrCreateExplanation(20L, 100L))
+                .isInstanceOfSatisfying(BusinessException.class, e ->
+                        assertThat(e.getErrorCode()).isEqualTo(FacilityErrorCode.FORBIDDEN_ROLE));
+        verifyNoInteractions(aiDiagnosisExplanationService);
     }
 
     private void loginAs(Long userId, UserRole role) {
