@@ -25,6 +25,27 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.tag }}
+    # FiresafetyApplicationTests.contextLoads()가 전체 Spring context(DataSource/Flyway/MyBatis 포함)를
+    # 띄운다 - 로컬은 spring.config.import: optional:file:.env[.properties]로 .env를 읽어 통과하지만,
+    # .env는 gitignore 대상이라 CI 체크아웃에는 없다. production MySQL/credential을 쓰는 대신, 실제
+    # Flyway 마이그레이션/MyBatis 매퍼를 production과 동일한 mysql:8.0으로 검증하기 위해 CI 전용
+    # service container를 띄운다(아래 env의 DB_USERNAME/DB_PASSWORD/JWT_SECRET_KEY는 이 job 안에서만
+    # 쓰이는 더미 값 - production 값과 무관하고 실제 인증/암호화에 쓰이지 않는다).
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: arcguard_test
+          MYSQL_USER: ci_test_user
+          MYSQL_PASSWORD: ci_test_password
+          MYSQL_ROOT_PASSWORD: ci_test_root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
 
@@ -33,10 +54,25 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      # Flyway는 실제 MySQL 연결이 필요한 테스트가 아니라 Mockito 기반 단위 테스트만 돈다 -
-      # CI에서 DB 컨테이너를 별도로 띄우지 않는다(FiresafetyApplicationTests는 로컬 DB_URL 환경
-      # 의존성 있는 기존 known issue라 CI에서도 별도 DB 없이는 실패할 수 있음 - 아래 참고).
       - name: Gradle test
+        env:
+          DB_URL: jdbc:mysql://localhost:3306/arcguard_test
+          DB_USERNAME: ci_test_user
+          DB_PASSWORD: ci_test_password
+          JWT_ISSUER: ci-test-issuer
+          JWT_BEARER_FORMAT: JWT
+          JWT_CLAIM_KEY: user
+          # openssl rand -base64 32 상당의 CI 전용 더미 키 - production JWT_SECRET_KEY와 무관하며
+          # 여기서 서명된 토큰은 이 job 밖에서 검증되지 않는다.
+          JWT_SECRET_KEY: QfqbClEImNVTtWuVRE7dp8lGa3GITuuuVHaFwNr27DM=
+          JWT_ACCESS_TOKEN_COOKIE_NAME: at
+          JWT_ACCESS_TOKEN_COOKIE_PATH: /
+          JWT_ACCESS_TOKEN_COOKIE_VALIDITY_SECONDS: "3600"
+          JWT_ACCESS_TOKEN_VALIDITY_MILLISECONDS: "3600000"
+          JWT_REFRESH_TOKEN_COOKIE_NAME: rt
+          JWT_REFRESH_TOKEN_COOKIE_PATH: /api/auth
+          JWT_REFRESH_TOKEN_COOKIE_VALIDITY_SECONDS: "604800"
+          JWT_REFRESH_TOKEN_VALIDITY_MILLISECONDS: "604800000"
         run: ./gradlew test --no-daemon
 
       - name: Gradle build (jar only, skip tests already run above)
