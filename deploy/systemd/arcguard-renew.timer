@@ -1,0 +1,12 @@
+# 매일 새벽 3시(+최대 30분 랜덤 지연, Let's Encrypt 서버 부하 분산) arcguard-renew.service 실행.
+# certbot renew 자체가 만료 30일 이내인 인증서만 실제로 갱신하므로 매일 돌려도 안전하다.
+[Unit]
+Description=Daily timer for ArcGuard Let's Encrypt renewal
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

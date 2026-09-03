@@ -122,23 +122,59 @@ gunzip -c <파일> | docker compose exec -T mysql mysql -u root -p<DB_ROOT_PASSW
 
 cron으로 주기 실행하거나 S3로 옮기는 자동화는 이번 Phase에서 구축하지 않는다(P2).
 
-## HTTPS
+## HTTPS (Phase 16 적용 완료)
 
-도메인이 아직 확정되지 않아 이번 Phase는 HTTP(80)까지만 적용했다. `deploy/nginx/conf.d/arcguard.conf`
-하단에 HTTPS 골격이 주석으로 준비되어 있다 - 실제 도메인이 정해지고 DNS가 EC2를 가리키면:
+`arcguard.duckdns.org`로 Let's Encrypt 인증서를 발급해 HTTPS를 적용했다. 인증서는
+`certbot/certbot` 공식 이미지를 `docker compose run --rm certbot ...`로 1회성 실행해 발급/갱신하며
+(webroot 방식 - `/var/www/certbot`을 nginx/certbot 컨테이너가 공유), 상시 기동하는 서비스가 아니다.
 
-1. EC2에서 `certbot certonly --standalone -d <도메인>` (nginx 컨테이너를 잠깐 멈추거나 webroot 방식 사용)
-2. 발급된 `fullchain.pem`/`privkey.pem`을 `~/arcguard/deploy/nginx/certs/`에 둔다(Git 커밋 금지)
-3. `arcguard.conf`의 HTTPS 블록 주석 해제, `server_name`을 실제 도메인으로 교체, 80 블록은 443 리다이렉트로 변경
-4. `docker compose up -d --no-deps nginx`
+### 최초 발급 (완료됨, 재실행 불필요 - 참고용)
+
+```bash
+cd ~/arcguard
+docker compose --env-file .env.production run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d arcguard.duckdns.org \
+  --email <연락용 이메일> \
+  --agree-tos --non-interactive --no-eff-email
+```
+
+발급된 인증서는 `deploy/nginx/certs/live/arcguard.duckdns.org/`에 저장된다(Git 커밋 금지,
+서버에만 존재). `arcguard.conf`가 이 경로를 `ssl_certificate`/`ssl_certificate_key`로 참조한다.
+
+### 자동 갱신
+
+`deploy/scripts/renew-cert.sh`를 systemd timer(`deploy/systemd/arcguard-renew.{service,timer}`)가
+매일 새벽 3시(+최대 30분 랜덤 지연)에 실행한다. `certbot renew`는 만료 30일 이내인 인증서만 실제로
+갱신하므로 매일 돌려도 안전하고, 실제 갱신이 일어난 경우에만 `nginx -s reload`로 새 인증서를 반영한다.
+
+최초 설치(완료됨, 재설치 시에만 참고):
+```bash
+sudo cp deploy/systemd/arcguard-renew.service deploy/systemd/arcguard-renew.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now arcguard-renew.timer
+```
+
+상태 확인: `systemctl list-timers arcguard-renew.timer`, 로그: `~/arcguard-renew.log`.
+dry-run 검증: `docker compose --env-file .env.production run --rm -T certbot renew --dry-run`
+(`-T`로 TTY 할당을 끄지 않으면 비대화형 실행 시 멈출 수 있다 - 실제로 겪은 문제).
+
+### 재발급이 필요한 경우(도메인 변경 등)
+
+1. 새 도메인 DNS가 EC2를 가리키는지 먼저 확인
+2. 위 "최초 발급" 명령을 새 도메인으로 실행
+3. `arcguard.conf`의 `server_name`/`ssl_certificate*` 경로를 새 도메인 기준으로 수정
+4. `docker compose exec nginx nginx -t && docker compose exec nginx nginx -s reload`
 
 ## Security Group (AWS Console)
 
-현재 inbound: `22`(0.0.0.0/0), `80`(0.0.0.0/0), `443`(0.0.0.0/0), `8080`(0.0.0.0/0).
+현재 inbound: `22`(0.0.0.0/0), `80`(0.0.0.0/0), `443`(0.0.0.0/0).
 
-배포 완료 후 정리 권장:
-- `8080` 규칙 삭제 (nginx가 유일한 진입점이 된 뒤로는 불필요 - Fairway 시절 잔재)
-- `22`를 `0.0.0.0/0` 대신 본인 IP 대역으로 제한
+Phase 16에서 정리 완료:
+- `8080` 규칙 삭제됨 (Fairway 시절 잔재, nginx가 유일한 진입점이 된 뒤로는 불필요했음)
+
+남은 검토 항목:
+- `22`를 `0.0.0.0/0` 대신 본인 IP 대역으로 제한 (TBD, 사용자 결정 필요)
 
 ## Elastic IP (검토)
 

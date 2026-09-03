@@ -36,14 +36,32 @@ services:
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro,Z
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro,Z
-      # HTTPS 적용 시 실제 인증서 파일을 서버에서만 이 디렉터리에 둔다 (Git 커밋 금지)
+      # Let's Encrypt가 실제로 발급한 인증서(서버에서만 존재, Git 커밋 금지) - certbot 서비스가
+      # 같은 호스트 경로에 /etc/letsencrypt로 쓰기 때문에 certbot 관점의 live/archive/renewal
+      # 디렉터리 구조가 그대로 nginx에도 보인다.
       - ./deploy/nginx/certs:/etc/nginx/certs:ro,Z
+      # certbot webroot(HTTP-01 challenge 파일) - certbot 컨테이너와 공유
+      - ./deploy/nginx/certbot-www:/var/www/certbot:ro,Z
     depends_on:
       - backend
       - frontend
     networks:
       - arcguard-net
     restart: unless-stopped
+    logging: *default-logging
+
+  # 인증서 발급/갱신 전용 - 상시 기동하지 않고 `docker compose run --rm certbot ...`으로만 실행한다.
+  # webroot 방식: 이 컨테이너는 파일만 /var/www/certbot에 쓰고, 실제 HTTP-01 응답은 nginx가 한다.
+  certbot:
+    image: certbot/certbot:latest
+    container_name: arcguard-certbot
+    # profiles로 기본 `up`/`up -d`(서비스명 생략) 대상에서 제외한다 - 이 서비스는 항상
+    # `docker compose run --rm -T certbot ...`으로만 1회성 실행한다(renew-cert.sh 참고).
+    profiles:
+      - certbot
+    volumes:
+      - ./deploy/nginx/certs:/etc/letsencrypt
+      - ./deploy/nginx/certbot-www:/var/www/certbot
     logging: *default-logging
 
   frontend:

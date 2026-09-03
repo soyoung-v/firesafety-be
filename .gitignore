@@ -2,6 +2,7 @@
 **/.env.production
 !**/.env.production.example
 deploy/nginx/certs/
+deploy/nginx/certbot-www/
 HELP.md
 .gradle
 build/

@@ -1,0 +1,11 @@
+# Let's Encrypt 인증서 갱신 1회 실행. arcguard-renew.timer가 주기적으로 이 서비스를 트리거한다.
+# EC2에 설치: sudo cp deploy/systemd/arcguard-renew.* /etc/systemd/system/ && sudo systemctl daemon-reload
+#            && sudo systemctl enable --now arcguard-renew.timer
+[Unit]
+Description=ArcGuard Let's Encrypt certificate renewal
+
+[Service]
+Type=oneshot
+User=ec2-user
+WorkingDirectory=/home/ec2-user/arcguard
+ExecStart=/home/ec2-user/arcguard/deploy/scripts/renew-cert.sh
