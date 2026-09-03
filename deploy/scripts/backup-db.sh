@@ -5,7 +5,10 @@
 # 사용법(EC2 host에서, ~/arcguard 안에서 실행):
 #   ./deploy/scripts/backup-db.sh
 #
-# 비밀번호를 스크립트에 하드코딩하지 않는다 - .env.production에서 읽는다.
+# host shell에서 비밀번호를 직접 읽거나 파싱하지 않는다. mysql 컨테이너는 이미
+# docker-compose.yml environment(MYSQL_ROOT_PASSWORD/MYSQL_DATABASE)로 값을 받아 갖고
+# 있으므로, exec로 그 컨테이너 내부 환경변수를 그대로 사용한다 - .env.production의 값
+# 포맷(공백 포함 등)과 무관하게 안전하다.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -14,16 +17,13 @@ if [ ! -f .env.production ]; then
     exit 1
 fi
 
-# shellcheck disable=SC1091
-set -a; source .env.production; set +a
-
 BACKUP_DIR="${BACKUP_DIR:-$HOME/arcguard-backups}"
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 OUT_FILE="$BACKUP_DIR/arcguard_db-$TIMESTAMP.sql.gz"
 
-docker compose exec -T mysql \
-    mysqldump -u root -p"$DB_ROOT_PASSWORD" --databases arcguard_db --routines --triggers --set-gtid-purged=OFF \
+docker compose --env-file .env.production exec -T mysql \
+    sh -c 'exec mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" --databases "$MYSQL_DATABASE" --routines --triggers --set-gtid-purged=OFF' \
     | gzip > "$OUT_FILE"
 
 echo "backup saved: $OUT_FILE"
