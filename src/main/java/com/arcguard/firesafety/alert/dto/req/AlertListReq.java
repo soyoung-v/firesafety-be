@@ -23,6 +23,9 @@ public class AlertListReq {
     private Long siteId;
     @Schema(description = "분전반 ID 필터(선택). 위험 팝업 '상세보기' 진입 시 해당 분전반의 최신 미확인 경보를 찾는 용도", example = "1")
     private Long panelId;
+    @Schema(description = "경보 ID 단건 필터(선택). 목록에서 특정 경보를 클릭해 진입했을 때 그 경보를 정확히 재조회하는 용도 - " +
+            "\"최근 N건\"류 목록 밖으로 밀려나도 대상이 바뀌지 않게 한다", example = "1")
+    private Long alertId;
 
     @Schema(description = "조회 시작일(선택)", example = "2026-07-01")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)

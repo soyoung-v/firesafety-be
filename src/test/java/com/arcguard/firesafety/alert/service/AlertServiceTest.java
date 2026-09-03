@@ -77,9 +77,9 @@ class AlertServiceTest {
 
         LocalDateTime fromAt = LocalDateTime.of(2026, 7, 23, 0, 0);
         LocalDateTime toAt = LocalDateTime.of(2026, 7, 24, 0, 0);
-        when(alertMapper.findAlerts(1L, true, "UNCONFIRMED", "ARC", 3L, null, fromAt, toAt, 10, 0))
+        when(alertMapper.findAlerts(1L, true, "UNCONFIRMED", "ARC", 3L, null, null, fromAt, toAt, 10, 0))
                 .thenReturn(List.of(alertListRes()));
-        when(alertMapper.countAlerts(1L, true, "UNCONFIRMED", "ARC", 3L, null, fromAt, toAt))
+        when(alertMapper.countAlerts(1L, true, "UNCONFIRMED", "ARC", 3L, null, null, fromAt, toAt))
                 .thenReturn(1L);
 
         // when
@@ -89,7 +89,30 @@ class AlertServiceTest {
         assertThat(result.getTotalElements()).isEqualTo(1L);
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getPanelName()).isEqualTo("분전반A");
-        verify(alertMapper).findAlerts(1L, true, "UNCONFIRMED", "ARC", 3L, null, fromAt, toAt, 10, 0);
+        verify(alertMapper).findAlerts(1L, true, "UNCONFIRMED", "ARC", 3L, null, null, fromAt, toAt, 10, 0);
+    }
+
+    @Test
+    @DisplayName("MOBILE-P1: alertId 단건 필터를 지정하면 그 값 그대로 Mapper에 전달된다 - "
+            + "'최근 N건' 목록 밖으로 밀려난 경보도 정확히 그 ID로 재조회할 수 있어야 한다")
+    void searchesSingleAlertByIdRegardlessOfRecency() {
+        // given
+        loginAs(1L, UserRole.SUPER_ADMIN);
+        AlertListReq req = new AlertListReq();
+        req.setAlertId(7L);
+
+        when(alertMapper.findAlerts(1L, true, null, null, null, null, 7L, null, null, 20, 0))
+                .thenReturn(List.of(alertListRes()));
+        when(alertMapper.countAlerts(1L, true, null, null, null, null, 7L, null, null))
+                .thenReturn(1L);
+
+        // when
+        AlertListPageRes result = alertService.getAlerts(req);
+
+        // then
+        assertThat(result.getTotalElements()).isEqualTo(1L);
+        assertThat(result.getContent()).hasSize(1);
+        verify(alertMapper).findAlerts(1L, true, null, null, null, null, 7L, null, null, 20, 0);
     }
 
     @Test
@@ -97,9 +120,9 @@ class AlertServiceTest {
     void adminSearchesAssignedSiteAlerts() {
         // given
         loginAs(2L, UserRole.ADMIN);
-        when(alertMapper.findAlerts(2L, false, null, null, null, null, null, null, 20, 0))
+        when(alertMapper.findAlerts(2L, false, null, null, null, null, null, null, null, 20, 0))
                 .thenReturn(List.of());
-        when(alertMapper.countAlerts(2L, false, null, null, null, null, null, null))
+        when(alertMapper.countAlerts(2L, false, null, null, null, null, null, null, null))
                 .thenReturn(0L);
 
         // when
@@ -107,7 +130,7 @@ class AlertServiceTest {
 
         // then
         assertThat(result.getTotalElements()).isZero();
-        verify(alertMapper).findAlerts(2L, false, null, null, null, null, null, null, 20, 0);
+        verify(alertMapper).findAlerts(2L, false, null, null, null, null, null, null, null, 20, 0);
     }
 
     @Test

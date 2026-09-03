@@ -72,6 +72,9 @@
             <if test="panelId != null">
                 AND a.panel_id = #{panelId}
             </if>
+            <if test="alertId != null">
+                AND a.alert_id = #{alertId}
+            </if>
             <if test="fromAt != null">
                 AND a.triggered_at &gt;= #{fromAt}
             </if>
