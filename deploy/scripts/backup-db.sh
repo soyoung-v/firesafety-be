@@ -5,10 +5,11 @@
 # 사용법(EC2 host에서, ~/arcguard 안에서 실행):
 #   ./deploy/scripts/backup-db.sh
 #
-# host shell에서 비밀번호를 직접 읽거나 파싱하지 않는다. mysql 컨테이너는 이미
-# docker-compose.yml environment(MYSQL_ROOT_PASSWORD/MYSQL_DATABASE)로 값을 받아 갖고
-# 있으므로, exec로 그 컨테이너 내부 환경변수를 그대로 사용한다 - .env.production의 값
-# 포맷(공백 포함 등)과 무관하게 안전하다.
+# 컨테이너 내부의 MYSQL_ROOT_PASSWORD는 컨테이너 최초 생성 시점 값이 그대로 굳어있어(mysql
+# 공식 이미지는 데이터 디렉토리가 비어있을 때만 이 값을 반영), .env.production을 나중에 갱신해도
+# 컨테이너가 재생성되지 않으면 실제 DB 비밀번호와 어긋날 수 있다(운영 중 실제로 확인된 케이스).
+# 그래서 host shell에서 .env.production을 직접 읽되, 전체를 source하지 않고 필요한 키만 grep으로
+# 읽는다 - 값에 공백이 섞여도(예: "아크가드 ArcGuard") word-splitting으로 깨지지 않는다.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -17,13 +18,19 @@ if [ ! -f .env.production ]; then
     exit 1
 fi
 
+DB_ROOT_PASSWORD=$(grep -m1 '^DB_ROOT_PASSWORD=' .env.production | cut -d= -f2-)
+if [ -z "$DB_ROOT_PASSWORD" ]; then
+    echo "DB_ROOT_PASSWORD not found in .env.production" >&2
+    exit 1
+fi
+
 BACKUP_DIR="${BACKUP_DIR:-$HOME/arcguard-backups}"
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 OUT_FILE="$BACKUP_DIR/arcguard_db-$TIMESTAMP.sql.gz"
 
-docker compose --env-file .env.production exec -T mysql \
-    sh -c 'exec mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" --databases "$MYSQL_DATABASE" --routines --triggers --set-gtid-purged=OFF' \
+docker compose exec -T mysql \
+    mysqldump -u root -p"$DB_ROOT_PASSWORD" --databases arcguard_db --routines --triggers --set-gtid-purged=OFF \
     | gzip > "$OUT_FILE"
 
 echo "backup saved: $OUT_FILE"
