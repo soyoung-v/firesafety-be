@@ -63,7 +63,7 @@ chmod 600 ~/arcguard/.env.production
 |---|---|
 | `EC2_HOST` | EC2 Public IP 또는 도메인 (Elastic IP 권장 - 재시작마다 바뀌는 임시 IP를 쓰면 이 값을 매번 갱신해야 함) |
 | `EC2_USER` | `ec2-user` |
-| `EC2_SSH_PRIVATE_KEY` | EC2 키페어(`fairway-key`)의 **개인키 파일 내용 전체**(`-----BEGIN ... PRIVATE KEY-----`부터 `END`까지) |
+| `EC2_SSH_PRIVATE_KEY` | ArcGuard EC2 키페어의 **개인키 파일 내용 전체**(`-----BEGIN ... PRIVATE KEY-----`부터 `END`까지) |
 
 `GITHUB_TOKEN`(GHCR push/pull용)은 별도 등록 불필요 - GitHub Actions가 자동 제공하는 토큰을 그대로
 쓴다(`packages: write` 권한은 워크플로 파일의 `permissions:`에 이미 선언돼 있음).
@@ -171,7 +171,7 @@ dry-run 검증: `docker compose --env-file .env.production run --rm -T certbot r
 현재 inbound: `22`(0.0.0.0/0), `80`(0.0.0.0/0), `443`(0.0.0.0/0).
 
 Phase 16에서 정리 완료:
-- `8080` 규칙 삭제됨 (Fairway 시절 잔재, nginx가 유일한 진입점이 된 뒤로는 불필요했음)
+- `8080` 규칙 삭제됨 (nginx가 유일한 진입점이 된 뒤로는 불필요했던 이전 단계의 잔재)
 
 남은 검토 항목:
 - `22`를 `0.0.0.0/0` 대신 본인 IP 대역으로 제한 (TBD, 사용자 결정 필요)
