@@ -27,12 +27,16 @@ _retry() {
 }
 
 check_frontend() {
-    echo "[health] frontend (nginx -> frontend)"
-    curl -fsS -o /dev/null http://localhost/
     # nginx가 실제로 떠 있어야만 의미 있는 integration check라 frontend 배포(=전체 스택이 갖춰진
     # 시점) 쪽에서만 검증한다 - backend 배포 시점엔 nginx가 아직 없을 수 있어 여기서는 하지 않는다.
+    # 최초 bootstrap에서는 nginx가 바로 이 배포 스텝에서 처음 생성되므로(frontend 다음, nginx는
+    # frontend/backend 정적 upstream을 설정 로드 시점에 resolve해 실패하면 기동을 거부하는데,
+    # frontend가 먼저 뜬 뒤에 nginx를 올리므로 정상 케이스에선 즉시 성공한다) 컨테이너가 실제로
+    # listen하기까지 약간의 지연을 감안해 재시도한다(고정 sleep이 아니라 준비될 때까지 확인).
+    echo "[health] frontend (nginx -> frontend)"
+    _retry "nginx->frontend" curl -fsS -o /dev/null http://localhost/
     echo "[health] nginx -> backend (swagger-ui integration route)"
-    curl -fsS -o /dev/null http://localhost/swagger-ui.html
+    _retry "nginx->backend" curl -fsS -o /dev/null http://localhost/swagger-ui.html
 }
 
 check_backend() {
