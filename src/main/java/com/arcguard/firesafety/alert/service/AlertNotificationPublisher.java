@@ -20,7 +20,7 @@ public class AlertNotificationPublisher {
 
     // 신규 경보 생성 이벤트 발행
     public void publishCreated(Alert alert) {
-        publish(alert, alert.getStatus(), "ALERT_CREATED");
+        publish(alert, alert.getStatus(), AlertNotificationEvent.EVENT_ALERT_CREATED);
     }
 
     // 경보 상태 변경 이벤트 발행

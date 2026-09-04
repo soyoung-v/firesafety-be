@@ -18,10 +18,14 @@ public class AlertNotificationListener {
     private final FcmPushService fcmPushService;
 
     // 경보 DB 반영이 끝난 뒤 WebSocket/FCM 알림 처리
+    // FCM은 신규 생성(ALERT_CREATED)일 때만 보낸다 - 확인/조치완료(publishStatusChanged가 보내는 다른
+    // eventType)는 화면 갱신용 WebSocket 브로드캐스트만 필요하고, 사용자에게 다시 푸시를 보내면 안 된다.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void handle(AlertNotificationEvent event) {
         monitoringRealtimeService.broadcastSiteRefresh(event.getSiteId(), event.getEventType());
-        fcmPushService.sendAlert(event);
+        if (AlertNotificationEvent.EVENT_ALERT_CREATED.equals(event.getEventType())) {
+            fcmPushService.sendAlert(event);
+        }
     }
 
     // 일괄 확인/조치완료 — 건마다 브로드캐스트하면 클라이언트 재조회가 폭주하므로 현장당 한 번만 보낸다.
