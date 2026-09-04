@@ -39,6 +39,7 @@ GitHub Actions를 통해 테스트 → Docker 이미지 빌드 → GHCR Push →
 
 외부에는 Nginx의 80/443 포트와 관리용 SSH 22 포트만 노출하며,  
 Backend · AI Service · MySQL은 직접 외부에 노출하지 않고 Docker 내부 네트워크에서 통신합니다.
+
 ---
 
 ## AI 진단 구조
