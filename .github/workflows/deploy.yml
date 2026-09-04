@@ -116,4 +116,12 @@ jobs:
             export IMAGE_TAG=${{ needs.test-and-build.outputs.image_tag }}
             docker compose --env-file .env.production pull backend
             docker compose --env-file .env.production up -d --no-deps backend
+
+            # backend가 재생성되면 arcguard-net에서 새 IP를 받는데, nginx는 proxy_pass 대상 호스트를
+            # 설정 로드/reload 시점에만 resolve하고 캐싱한다 - reload하지 않으면 이후 요청이 전부
+            # 옛 IP로 502가 난다(2026-09-04 실측). health-check보다 먼저 해야 한다 - 순서가 반대면
+            # stale IP로 인한 502를 health-check가 먼저 만나 set -e로 여기까지 못 온다.
+            docker exec arcguard-nginx nginx -t
+            docker exec arcguard-nginx nginx -s reload
+
             ./deploy/scripts/health-check.sh backend
