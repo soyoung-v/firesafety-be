@@ -32,20 +32,13 @@ ArcGuard는 전기 설비 센서 데이터를 수집하고 ML 기반 위험 진�
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    Browser --> Nginx["Nginx (HTTPS)"]
-    Simulator["Sensor Simulator"] -- "GET /m_noUpload.php" --> Nginx
-    Nginx --> FE["React"]
-    Nginx --> BE["Spring Boot"]
-    BE --> MySQL[("MySQL")]
-    BE -- "POST /predict, /explain" --> AI["FastAPI AI"]
-    AI -- "LLM 설명 생성 시" --> OpenAI
-    BE -- "경보 발생 시" --> Firebase["FCM"] --> PWA["iPhone PWA"]
-```
+![Architecture](images/architecture-system.png)
 
-3개 저장소(frontend/backend/ai-service)가 각자 GitHub Actions로 테스트 → Docker 빌드 → GHCR push → EC2에 해당 서비스만 재배포합니다. 외부에 열린 포트는 80/443(nginx)과 관리용 22뿐이고, MySQL/backend/ai-service는 내부망에서만 접근 가능합니다.
+Frontend / Backend / AI Service 3개 저장소를 독립적으로 구성하고,  
+GitHub Actions를 통해 테스트 → Docker 이미지 빌드 → GHCR Push → AWS EC2 재배포까지 자동화했습니다.
 
+외부에는 Nginx의 80/443 포트와 관리용 SSH 22 포트만 노출하며,  
+Backend · AI Service · MySQL은 직접 외부에 노출하지 않고 Docker 내부 네트워크에서 통신합니다.
 ---
 
 ## AI 진단 구조
